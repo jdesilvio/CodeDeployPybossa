@@ -6,7 +6,7 @@ files:
 permissions:
 # 1) For all folders at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
-  - object: /home/ubuntu/pybossa/
+  - object: /home/ubuntu/pybossa/08052016
     owner: ubuntu
     group: ubuntu
     mode: 775
@@ -14,7 +14,7 @@ permissions:
       - directory
 # 2) For all files at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 664 (-rw-rw-r--).
-  - object: /home/ubuntu/pybossa/
+  - object: /home/ubuntu/pybossa/08052016
     owner: ubuntu
     group: ubuntu
     mode: 664
