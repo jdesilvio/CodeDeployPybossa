@@ -1,0 +1,109 @@
+{% extends "/base.html" %}
+{% set active_page = "admin" %}
+{% set active_link = "admin" %}
+{% import "account/_helpers.html" as helper %}
+{% import "projects/_helpers.html" as project_helper %}
+
+{% block content %}
+<script>
+var x;
+var urlPath;
+function projHandler() {
+	x = document.getElementById("project-list").value;
+	document.getElementById("disp-sel-value").innerHTML = x;
+	var y = x.toString();
+/*	var z; 
+	{% raw %}
+	z = "{{url_for(admin.custom_export_tasks, id=" + y + ")}}";
+	{% endraw %}
+	document.getElementById("disp-sel-value").innerHTML = x + z;
+	var a = document.getElementById("exp-id");
+	a.href = "{{z}}";
+*/
+}
+</script>
+
+<div class="row">
+    <div class="span3">
+        {{ helper.render_account_local_nav(current_user, active_link) }}
+    </div>
+    <div class="span9" style="min-height:400px;">
+        <h1><strong>{{ _('Admin Site') }}</strong></h1>
+        <div class="row-fluid">
+            <div id="dashboard" class="span6 well">
+                <h2><i class="icon-dashboard"></i> {{_('Dashboard')}}</h2>
+                <p>{{_('Internal Statistics')}}</p>
+                <a href="{{url_for('admin.dashboard')}}" class="btn btn-primary">
+                    {{ _('Go') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+            <div id="dashboard" class="span6 well">
+                <h2><i class="icon-dashboard"></i> {{_('Background Jobs')}}</h2>
+                <p>{{_('Monitor the background jobs')}}</p>
+                <a href="{{url_for('rq_dashboard.overview')}}" class="btn btn-primary">
+                    {{ _('Manage') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="row-fluid">
+            <div id="featured-apps" class="span6 well">
+                <h2><i class="icon-star"></i> {{_('Featured Projects')}}</h2>
+                <p>{{_('Show projects on the front page')}}</p>
+                <a href="{{url_for('admin.featured')}}" class="btn btn-primary">
+                    {{ _('Manage') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+            <div id="categories" class="span6 well">
+                <h2><i class="icon-check"></i> {{_('Categories')}}</h2>
+                <p>{{_('Manage project categories')}}</p>
+                <a href="{{url_for('admin.categories')}}" class="btn btn-primary">
+                    {{ _('Manage') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="row-fluid">
+            <div id="users" class="span6 well">
+                <h2><i class="icon-user"></i> {{_('Administrators')}}</h2>
+                <p>{{_('Manage administrators')}}</p>
+                <a href="{{url_for('admin.users')}}" class="btn btn-primary">
+                    {{ _('Manage') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+            <div id="users-list" class="span6 well">
+                <h2><i class="icon-list"></i> {{_('Users')}}</h2>
+                <p>{{_('Export a list of users')}}</p>
+                <a href="{{url_for('admin.export_users', format='json')}}" class="btn btn-primary">
+                    {{ _('JSON') }}
+                </a>
+                <a href="{{url_for('admin.export_users', format='csv')}}" class="btn btn-primary">
+                    {{ _('CSV') }}
+                </a>
+            </div>
+        </div>
+		<div class="row-fluid">
+            <div id="cust-exp-json" class="span6 well">
+                <h2><i class="icon-user"></i> {{_('Export Tasks')}}</h2>
+                <p>{{_('Customized export of completed tasks')}}</p>				
+				<select id="project-list" onchange="projHandler()">
+				{% for c in categories %}
+					{% for project in projects[c.short_name] %}
+						<option value = {{project.id}}> {{ project.name }}</option>
+					{% endfor %}
+				{% endfor %}
+				</select>
+				<p id="disp-sel-value"> "### " </p>
+				<a href="{{url_for('admin.custom_export_tasks', id=6)}}" class="btn btn-primary" onclick="location.href=this.href+'?id='+x;return false;">
+                    {{ _('JSON') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+            <div id="rep-qualified-res" class="span6 well">
+                <h2><i class="icon-user"></i> {{_('Qualified Workers')}}</h2>
+                <p>{{_('Generate report of qualified workers')}}</p>
+                <a href="{{url_for('admin.users')}}" class="btn btn-primary">
+                    {{ _('Report') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>			
+        </div>
+    </div>
+</div>
+{% endblock %}

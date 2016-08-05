@@ -1,0 +1,53 @@
+{% extends "/base.html" %}
+{% set active_page = "profile" %}
+{% set active_link = "admin" %}
+{% import "account/_helpers.html" as helper %}
+
+{% block content %}
+<script>
+function projHandler() {
+    var path2 = "/admin/custom_export_tasks"+document.getElementById("project-list").value;
+    var a = document.getElementById("exp-user-inputs-tasks");
+    var b = document.getElementById("exp-yes-no-tasks");
+    a.href = path2;
+    b.href = path2;
+    alert(a.href)
+
+}
+</script>
+
+<div class="row">
+    <div class="span3">
+        {{ helper.render_account_local_nav(current_user, active_link) }}
+    </div>
+    <div class="span9" >
+        <h1><strong>{{ _('Custom Export of Tasks') }}</strong></h1>
+        <div class="row-fluid">
+            <div id="exp-yes-no-tasks" class="span6 well">
+                <h2><i class="icon-star"></i> {{_('Export tasks with Yes/No answers')}}</h2>
+                <p>{{_('Show projects on the front page')}}</p>
+                <a href="#" class="btn btn-primary">
+                    {{ _('JSON') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="row-fluid">
+            <div id="exp-user-inputs-tasks" class="span6 well">
+                <h2><i class="icon-star"></i> {{_('Export tasks with answers containing user inputs')}}</h2>
+                <p>{{_('Show projects on the front page')}}</p>
+                <a href="#" class="btn btn-primary">
+                    {{ _('JSON') }} <i class="icon-chevron-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="span9" >
+        <select id="project-list" onchange="projHandler()">
+        {% for c in categories %}
+            {% for project in projects[c.short_name] %}
+                <option value = {{project.id}}> {{ project.name }}</option>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
