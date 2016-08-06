@@ -14,7 +14,7 @@ permissions:
       - directory
 # 2) For all files at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 664 (-rw-rw-r--).
-  - object: /home/ubuntu/pybossa/08052016
+  - object: /home/ubuntu/pybossa/08062016
     owner: ubuntu
     group: ubuntu
     mode: 664
