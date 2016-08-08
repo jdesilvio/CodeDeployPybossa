@@ -4,7 +4,16 @@ files:
   - source: /pybossa/pybossa/
     destination: /home/ubuntu/pybossa/08082016
 permissions:
-# 1) For all folders at any level under /home/ubuntu/pybossa/
+# 1) For newly deployment folder at under /home/ubuntu/pybossa/
+#  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
+  - object: /home/ubuntu/pybossa
+    pattern: "08082016"
+    owner: ubuntu
+    group: ubuntu
+    mode: 775
+    type:
+      - directory
+# 2) For all folders at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
   - object: /home/ubuntu/pybossa/08082016
     owner: ubuntu
@@ -12,7 +21,7 @@ permissions:
     mode: 775
     type:
       - directory
-# 2) For all files at any level under /home/ubuntu/pybossa/
+# 3) For all files at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 664 (-rw-rw-r--).
   - object: /home/ubuntu/pybossa/08082016
     owner: ubuntu
