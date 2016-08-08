@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 files:
   - source: /pybossa/pybossa/
-    destination: /home/ubuntu/pybossa/08082016-1
+    destination: /home/ubuntu/pybossa/08082016
 permissions:
 # 1) For all folders at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
