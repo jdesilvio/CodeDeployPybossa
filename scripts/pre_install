@@ -1,0 +1,20 @@
+#!/bin/bash
+# stop supervisor and nginx
+isProcRunning=`pgrep supervisor`
+if [[ -n  $isProcRunning ]]; then
+    service supervisor stop
+fi
+isProcRunning=`pgrep nginx`
+if [[ -n  $isProcRunning ]]; then
+    service nginx stop
+fi
+
+# remove softlink pointing to target folder
+rm -I /home/ubuntu/pybossa/pybossa
+
+# rename folder so that new deployment creates folder with same name
+targetfolder=08082016
+folder=`find . -name $targetfolder -type d`
+if [[ -n $folder ]]; then
+   mv $targetfolder $targetfolder.old
+fi

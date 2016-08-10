@@ -3,6 +3,15 @@ os: linux
 files:
   - source: /pybossa/pybossa/
     destination: /home/ubuntu/pybossa/08082016
+hooks:
+  BeforeInstall:
+    - location: scripts/pre_install
+      timeout: 300
+      runas: root  
+  AfterInstall:
+    - location: scripts/post_install
+      timeout: 300
+      runas: root        
 permissions:
 # 1) For newly deployment folder at under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
@@ -22,8 +31,10 @@ permissions:
     type:
       - directory
 # 3) For all files at any level under /home/ubuntu/pybossa/
+# except pre_install and post_install scripts
 #  owner = ubuntu, group = ubuntu and mode = 664 (-rw-rw-r--).
   - object: /home/ubuntu/pybossa/08082016
+    except: [pre_install, post_install]
     owner: ubuntu
     group: ubuntu
     mode: 664
