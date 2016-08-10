@@ -1,0 +1,11 @@
+#!/bin/bash
+# stop supervisor and nginx
+isProcRunning=`pgrep supervisor`
+if [[ -n  $isProcRunning ]]; then
+    service supervisor stop        
+fi
+isProcRunning=`pgrep nginx`
+if [[ -n  $isProcRunning ]]; then
+    service nginx stop        
+fi
+
