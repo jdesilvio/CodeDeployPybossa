@@ -1,9 +1,6 @@
 #!/bin/bash
 
 # update softlink pointing to latest deployed folder
-# delete old softlink
-rm -I /home/ubuntu/pybossa/pybossa
-# create new softlink
 ln -s /home/ubuntu/pybossa/08082016 /home/ubuntu/pybossa/pybossa
 
 # start services
