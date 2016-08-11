@@ -1,8 +1,42 @@
 #!/bin/bash
 
 # update softlink pointing to latest deployed folder
-ln -s /home/ubuntu/pybossa/08082016 /home/ubuntu/pybossa/pybossa
+# delete old softlink
+{
+rm -I /home/ubuntu/pybossa/pybossa
+# create new softlink
+ln -s /home/ubuntu/pybossa/08112016 /home/ubuntu/pybossa/pybossa
+rc=$?; if [[ $rc != 0 ]]; then
+exit $rc;
+else
+echo "execucted command ln -s /home/ubuntu/pybossa/08082016 /home/ubuntu/pybossa/pybossa"
+fi
 
 # start services
-service supervisor start
-service nginx start
+service supervisor restart &
+rc=$?; if [[ $rc != 0 ]]; then
+exit $rc;
+else
+echo "execucted command service supervisor restart"
+fi
+
+service nginx restart &
+rc=$?; if [[ $rc != 0 ]]; then
+exit $rc;
+else
+echo "execucted command service nginx restart"
+fi
+
+# wait for 2 seconds to turn on supervisor and nginx
+sleep 2
+
+# ensure localhost is up
+temp=`curl localhost`
+rc=$?; if [[ $rc != 0 ]]; then
+echo "error executing curl localhost"
+exit $rc;
+else
+echo "sucessfully deployed new version. passed curl localhost"
+fi
+
+} >> /var/log/codedeploy-post-install.log 2>&1
