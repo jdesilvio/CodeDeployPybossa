@@ -1,20 +1,16 @@
 #!/bin/bash
 # stop supervisor and nginx
+{
 isProcRunning=`pgrep supervisor`
 if [[ -n  $isProcRunning ]]; then
-    service supervisor stop
+    service supervisor stop &
+    echo "command service supervisor stop, exit code: $?"
 fi
 isProcRunning=`pgrep nginx`
 if [[ -n  $isProcRunning ]]; then
-    service nginx stop
+    service nginx stop &
+    echo "executed command service nginx stop, exit code: $?"
 fi
-
-# remove softlink pointing to target folder
-rm -I /home/ubuntu/pybossa/pybossa
-
-# rename folder so that new deployment creates folder with same name
-targetfolder=08082016
-folder=`find . -name $targetfolder -type d`
-if [[ -n $folder ]]; then
-   mv $targetfolder $targetfolder.old
-fi
+# add delay of 10 seconds for supervisor to shut down completely before next installation steps runs
+sleep 10
+} >> /var/log/codedeploy-pre-install.log
