@@ -5,11 +5,11 @@
 {
 rm -I /home/ubuntu/pybossa/pybossa
 # create new softlink
-ln -s /home/ubuntu/pybossa/08112016 /home/ubuntu/pybossa/pybossa
+ln -s /home/ubuntu/pybossa/08122016 /home/ubuntu/pybossa/pybossa
 rc=$?; if [[ $rc != 0 ]]; then
 exit $rc;
 else
-echo "execucted command ln -s /home/ubuntu/pybossa/08082016 /home/ubuntu/pybossa/pybossa"
+echo "execucted command ln -s /home/ubuntu/pybossa/08122016 /home/ubuntu/pybossa/pybossa"
 fi
 
 # start services
