@@ -39,7 +39,7 @@ from pybossa.model.task import Task
 from pybossa.model.task_run import TaskRun
 from pybossa.model.auditlog import Auditlog
 from pybossa.model.blogpost import Blogpost
-from pybossa.util import Pagination, admin_required, get_user_id_or_ip, rank
+from pybossa.util import Pagination, admin_required, get_user_id_or_ip, rank, admin_or_subadmin_required
 from pybossa.auth import ensure_authorized_to
 from pybossa.cache import projects as cached_projects
 from pybossa.cache import categories as cached_cat
@@ -189,7 +189,7 @@ def project_cat_index(category, page):
 
 @blueprint.route('/new', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@admin_or_subadmin_required
 def new():
     ensure_authorized_to('create', Project)
     form = ProjectForm(request.form)
@@ -247,15 +247,16 @@ def new():
 
 @blueprint.route('/<short_name>/tasks/taskpresentereditor', methods=['GET', 'POST'])
 @login_required
-@admin_required
+@admin_or_subadmin_required
 def task_presenter_editor(short_name):
     errors = False
     (project, owner, n_tasks, n_task_runs,
      overall_progress, last_activity) = project_by_shortname(short_name)
 
     title = project_title(project, "Task Presenter Editor")
-    ensure_authorized_to('read', project)
-    ensure_authorized_to('update', project)
+    if not current_user.admin and not current_user.subadmin:
+        ensure_authorized_to('read', project)
+        ensure_authorized_to('update', project)
 
     form = TaskPresenterForm(request.form)
     form.id.data = project.id
@@ -333,7 +334,6 @@ def task_presenter_editor(short_name):
 
 @blueprint.route('/<short_name>/delete', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def delete(short_name):
     (project, owner, n_tasks,
     n_task_runs, overall_progress, last_activity) = project_by_shortname(short_name)
@@ -356,7 +356,6 @@ def delete(short_name):
 
 @blueprint.route('/<short_name>/update', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def update(short_name):
     (project, owner, n_tasks,
      n_task_runs, overall_progress, last_activity) = project_by_shortname(short_name)
@@ -510,7 +509,6 @@ def settings(short_name):
 
 @blueprint.route('/<short_name>/tasks/import', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def import_task(short_name):
     (project, owner, n_tasks, n_task_runs,
      overall_progress, last_activity) = project_by_shortname(short_name)
@@ -878,7 +876,6 @@ def tasks_browse(short_name, page):
 
 @blueprint.route('/<short_name>/tasks/delete', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def delete_tasks(short_name):
     """Delete ALL the tasks for a given project"""
     (project, owner, n_tasks, n_task_runs,
@@ -912,7 +909,7 @@ def delete_tasks(short_name):
 
 @blueprint.route('/<short_name>/tasks/export')
 @login_required
-@admin_required
+@admin_or_subadmin_required
 def export_to(short_name):
     """Export Tasks and TaskRuns in the given format"""
     (project, owner, n_tasks, n_task_runs,
@@ -922,10 +919,11 @@ def export_to(short_name):
     title = project_title(project, gettext("Export"))
     loading_text = gettext("Exporting data..., this may take a while")
 
-    ensure_authorized_to('read', project)
-    redirect_to_password = _check_if_redirect_to_password(project)
-    if redirect_to_password:
-        return redirect_to_password
+    if not current_user.admin and not current_user.subadmin:
+        ensure_authorized_to('read', project)
+        redirect_to_password = _check_if_redirect_to_password(project)
+        if redirect_to_password:
+            return redirect_to_password
 
     def respond():
         return render_template('/projects/export.html',
@@ -1123,7 +1121,6 @@ def export_to(short_name):
 
 @blueprint.route('/<short_name>/stats')
 @login_required
-@admin_required
 def show_stats(short_name):
     """Returns Project Stats"""
     (project, owner, n_tasks, n_task_runs,
@@ -1187,7 +1184,6 @@ def show_stats(short_name):
 
 @blueprint.route('/<short_name>/tasks/settings')
 @login_required
-@admin_required
 def task_settings(short_name):
     """Settings page for tasks of the project"""
     (project, owner, n_tasks, n_task_runs,
@@ -1208,7 +1204,6 @@ def task_settings(short_name):
 
 @blueprint.route('/<short_name>/tasks/redundancy', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def task_n_answers(short_name):
     (project, owner, n_tasks, n_task_runs,
      overall_progress, last_activity) = project_by_shortname(short_name)
@@ -1241,7 +1236,6 @@ def task_n_answers(short_name):
 
 @blueprint.route('/<short_name>/tasks/scheduler', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def task_scheduler(short_name):
     (project, owner, n_tasks, n_task_runs,
      overall_progress, last_activity) = project_by_shortname(short_name)
@@ -1289,7 +1283,6 @@ def task_scheduler(short_name):
 
 @blueprint.route('/<short_name>/tasks/priority', methods=['GET', 'POST'])
 @login_required
-@admin_required
 def task_priority(short_name):
     (project, owner, n_tasks, n_task_runs,
      overall_progress, last_activity) = project_by_shortname(short_name)
