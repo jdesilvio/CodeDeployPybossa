@@ -2,7 +2,7 @@ version: 0.0
 os: linux
 files:
   - source: /pybossa/pybossa/
-    destination: /home/ubuntu/pybossa/08122016
+    destination: /home/ubuntu/pybossa/pybossa
 hooks:
   BeforeInstall:
     - location: scripts/pre_install
@@ -13,10 +13,10 @@ hooks:
       timeout: 300
       runas: root        
 permissions:
-# 1) For newly deployment folder at under /home/ubuntu/pybossa/
+# 1) For newly deployment folder "pybossa" under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
   - object: /home/ubuntu/pybossa
-    pattern: "08112016"
+    pattern: "pybossa"
     owner: ubuntu
     group: ubuntu
     mode: 775
@@ -24,7 +24,7 @@ permissions:
       - directory
 # 2) For all folders at any level under /home/ubuntu/pybossa/
 #  owner = ubuntu, group = ubuntu and mode = 775 (drwxrwxr-x).
-  - object: /home/ubuntu/pybossa/08122016
+  - object: /home/ubuntu/pybossa/pybossa
     owner: ubuntu
     group: ubuntu
     mode: 775
