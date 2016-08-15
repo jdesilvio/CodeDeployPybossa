@@ -1,20 +1,20 @@
 #!/bin/bash
-
-# update softlink pointing to latest deployed folder
-# delete old softlink
 {
-rm -I /home/ubuntu/pybossa/pybossa
-# create new softlink
-ln -s /home/ubuntu/pybossa/08122016 /home/ubuntu/pybossa/pybossa
+#rename target folder by appending current datetime to it
+datetimeval=$(date +%m%d%Y%H%M%S)
+targetpath=/home/ubuntu/pybossa/pybossa
+mv $targetpath $targetpath.$datetimeval
 rc=$?; if [[ $rc != 0 ]]; then
+echo "error renaming $targetpath to $targetpath.$datetimeval"
 exit $rc;
 else
-echo "execucted command ln -s /home/ubuntu/pybossa/08122016 /home/ubuntu/pybossa/pybossa"
+echo "renamed folder from $targetpath to $targetpath.$datetimeval"
 fi
 
 # start services
 service supervisor restart &
 rc=$?; if [[ $rc != 0 ]]; then
+echo "error stopping supervisor"
 exit $rc;
 else
 echo "execucted command service supervisor restart"
@@ -22,13 +22,14 @@ fi
 
 service nginx restart &
 rc=$?; if [[ $rc != 0 ]]; then
+echo "error stopping nginx"
 exit $rc;
 else
 echo "execucted command service nginx restart"
 fi
 
-# wait for 2 seconds to turn on supervisor and nginx
-sleep 2
+# wait  to turn on supervisor and nginx completely
+sleep 10
 
 # ensure localhost is up
 temp=`curl localhost`
