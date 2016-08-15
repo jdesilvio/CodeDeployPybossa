@@ -9,7 +9,7 @@
           <a class="brand" href="{{ url_for('home.home') }}"><img src="{{url_for('static',filename='img/' + logo)}}" alt="{{brand}}" height="112" width="112"></a>
           <div class="nav-collapse collapse">
           <ul class="nav">
-              {% if current_user.admin %}
+              {% if current_user.admin % or current_user.subadmin %}
               <li {% if active_page == 'create' %} class="active" {% endif %}><a href="{{ url_for('project.new') }}">{{ _('Create') }}</a></li>
               <li {% if active_page == 'community' %} class="active" {% endif %}><a href="{{ url_for('account.index')}}">{{ _('Community') }}</a></li>
               {% endif %}          
