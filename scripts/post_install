@@ -1,16 +1,5 @@
 #!/bin/bash
 {
-#rename target folder by appending current datetime to it
-datetimeval=$(date +%m%d%Y%H%M%S)
-targetpath=/home/ubuntu/pybossa/pybossa
-mv $targetpath $targetpath.$datetimeval
-rc=$?; if [[ $rc != 0 ]]; then
-echo "error renaming $targetpath to $targetpath.$datetimeval"
-exit $rc;
-else
-echo "renamed folder from $targetpath to $targetpath.$datetimeval"
-fi
-
 # start services
 service supervisor restart &
 rc=$?; if [[ $rc != 0 ]]; then
