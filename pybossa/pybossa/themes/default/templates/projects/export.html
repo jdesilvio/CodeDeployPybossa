@@ -6,7 +6,7 @@
 
 {% block content %}
 {{ helper.render_loading(text=loading_text) }}
-{% if not current_user.admin %}
+{% if not current_user.admin  and not current_user.subadmin %}
     {{ privacy.render_lock_page() }}
 {% else %}
 <div class="row">

@@ -65,18 +65,15 @@ function report_handler() {
                     {{ _('Manage') }} <i class="icon-chevron-right"></i>
                 </a>
             </div>
-            <div id="users-list" class="span6 well">
-                <h2><i class="icon-list"></i> {{_('Users')}}</h2>
-                <p>{{_('Export a list of users')}}</p>
-                <a href="{{url_for('admin.export_users', format='json')}}" class="btn btn-primary">
-                    {{ _('JSON') }}
-                </a>
-                <a href="{{url_for('admin.export_users', format='csv')}}" class="btn btn-primary">
-                    {{ _('CSV') }}
+            <div id="`subadminusers" class="span6 well">
+                <h2><i class="icon-user"></i> {{_('Subadministrators')}}</h2>
+                <p>{{_('Manage subadministrators')}}</p>
+                <a href="{{url_for('admin.subadminusers')}}" class="btn btn-primary">
+                    {{ _('Manage') }} <i class="icon-chevron-right"></i>
                 </a>
             </div>
         </div>
-		<div class="row-fluid">
+	<div class="row-fluid">
             <div id="cust-exp" class="span6 well">
                 <h2><i class="icon-user"></i> {{_('Custom Export Tasks')}}</h2>
                 <p>{{_('Export completed tasks for selected project')}}</p>
@@ -105,6 +102,18 @@ function report_handler() {
                     {{ _('Report') }} <i class="icon-chevron-right"></i>
                 </a>
             </div>			
+        </div>
+        <div class="row-fluid">
+            <div id="users-list" class="span6 well">
+                <h2><i class="icon-list"></i> {{_('Users')}}</h2>
+                <p>{{_('Export a list of users')}}</p>
+                <a href="{{url_for('admin.export_users', format='json')}}" class="btn btn-primary">
+                    {{ _('JSON') }}
+                </a>
+                <a href="{{url_for('admin.export_users', format='csv')}}" class="btn btn-primary">
+                    {{ _('CSV') }}
+                </a>
+            </div>
         </div>
     </div>
 </div>

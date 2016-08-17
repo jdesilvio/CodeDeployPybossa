@@ -59,6 +59,7 @@ class User(db.Model, DomainObject, UserMixin):
     confirmation_email_sent = Column(Boolean, default=False)
     subscribed = Column(Boolean, default=True)
     info = Column(JSONEncodedDict, default=dict)
+    subadmin = Column(Boolean, default=False)
 
     ## Relationships
     task_runs = relationship(TaskRun, backref='user')
