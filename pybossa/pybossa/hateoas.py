@@ -39,6 +39,7 @@ class Hateoas(object):
         cls = item.__class__.__name__.lower()
         links = []
         if cls == 'taskrun':
+            link = self.create_link(item)
             try:
                 if item.project_id is not None:
                     links.append(self.create_link(item.project, rel='parent'))
