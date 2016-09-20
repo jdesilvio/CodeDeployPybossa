@@ -63,6 +63,31 @@ class TaskRepository(object):
             return query.yield_per(1)
         return query.all()
 
+    def filter_completed_task_runs_by(self, limit=None, offset=0, yielded=False, **filters):
+        # exported col is present in Task table
+        # anything passed under filters will be
+        # searched in TaskRun table instead of Task
+        # exclude exported flag from filters and make 
+        # it explicitly searchable against Task table
+        exp = filters.pop('exported', None)
+        if exp is not None:
+            query = self.db.session.query(TaskRun).join(Task).\
+		          filter(TaskRun.task_id == Task.id).\
+		          filter(Task.state == u'completed').\
+		          filter(Task.exported == exp).\
+		          filter_by(**filters)
+        else:
+            query = self.db.session.query(TaskRun).join(Task).\
+		          filter(TaskRun.task_id == Task.id).\
+		          filter(Task.state == u'completed').\
+		          filter_by(**filters)    
+
+        query = query.order_by(TaskRun.id).limit(limit).offset(offset)
+        if yielded:
+            return query.yield_per(1)
+        return query.all()
+        
+        
     def count_task_runs_with(self, **filters):
         return self.db.session.query(TaskRun).filter_by(**filters).count()
 
