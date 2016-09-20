@@ -50,6 +50,8 @@ from vmcp import VmcpAPI
 from user import UserAPI
 from token import TokenAPI
 from pybossa.core import project_repo, task_repo
+from completed_task import CompletedTaskAPI
+from completed_task_run import CompletedTaskRunAPI
 
 blueprint = Blueprint('api', __name__)
 
@@ -95,7 +97,8 @@ register_api(GlobalStatsAPI, 'api_globalstats', '/globalstats',
              pk='oid', pk_type='int')
 register_api(VmcpAPI, 'api_vmcp', '/vmcp', pk='oid', pk_type='int')
 register_api(TokenAPI, 'api_token', '/token', pk='token', pk_type='string')
-
+register_api(CompletedTaskAPI, 'api_completedtask', '/completedtask', pk='oid', pk_type='int')
+register_api(CompletedTaskRunAPI, 'api_completedtaskrun', '/completedtaskrun', pk='oid', pk_type='int')
 
 @jsonpify
 @blueprint.route('/app/<project_id>/newtask')

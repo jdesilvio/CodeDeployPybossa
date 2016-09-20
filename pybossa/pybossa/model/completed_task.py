@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 # This file is part of PyBossa.
 #
-# Copyright (C) 2013 SF Isle of Man Limited
+# Copyright (C) 2015 SciFabric LTD.
 #
 # PyBossa is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -23,15 +23,15 @@ from sqlalchemy.orm import relationship, backref
 from pybossa.core import db
 from pybossa.model import DomainObject, JSONType, JSONEncodedDict, \
     make_timestamp
-from pybossa.model.task_run import TaskRun
+from pybossa.model.completed_task_run import CompletedTaskRun
 
 
-class Task(db.Model, DomainObject):
+class CompletedTask(db.Model, DomainObject):
     '''An individual Task which can be performed by a user. A Task is
     associated to a project.
     '''
     __tablename__ = 'task'
-
+    __table_args__ = {'extend_existing': True}
 
     #: Task.ID
     id = Column(Integer, primary_key=True)
@@ -50,15 +50,8 @@ class Task(db.Model, DomainObject):
     info = Column(JSONType, default=dict)
     #: Number of answers to collect for this task.
     n_answers = Column(Integer, default=30)
-    #: completed task can be marked as exported=True after its exported
+    #: completed tasks that can be marked as exported=True after export
     exported = Column(Boolean, default=False)
 
-    task_runs = relationship(TaskRun, cascade='all, delete, delete-orphan', backref='task')
+    completed_task_runs = relationship(CompletedTaskRun, cascade='all, delete, delete-orphan', backref='task')
 
-
-    def pct_status(self):
-        """Returns the percentage of Tasks that are completed"""
-        if self.n_answers != 0 and self.n_answers is not None:
-            return float(len(self.task_runs)) / self.n_answers
-        else:  # pragma: no cover
-            return float(0)
