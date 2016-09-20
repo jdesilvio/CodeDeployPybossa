@@ -29,6 +29,7 @@ import user
 import token
 import blogpost
 import auditlog
+import completedtaskrun
 
 assert project
 assert task
@@ -38,7 +39,7 @@ assert user
 assert token
 assert blogpost
 assert auditlog
-
+assert completedtaskrun
 
 _actions = ['create', 'read', 'update', 'delete']
 _auth_classes = {'project': project.ProjectAuth,
@@ -48,7 +49,8 @@ _auth_classes = {'project': project.ProjectAuth,
                  'task': task.TaskAuth,
                  'taskrun': taskrun.TaskRunAuth,
                  'token': token.TokenAuth,
-                 'user': user.UserAuth}
+                 'user': user.UserAuth,
+                 'completedtaskrun': completedtaskrun.CompletedTaskRunAuth}
 
 
 def is_authorized(user, action, resource, **kwargs):
@@ -74,7 +76,7 @@ def ensure_authorized_to(action, resource, **kwargs):
 
 def _authorizer_for(resource_name):
     kwargs = {}
-    if resource_name == 'taskrun':
+    if resource_name in [ 'taskrun', 'completedtaskrun']:
         kwargs = {'task_repo': task_repo, 'project_repo': project_repo}
     if resource_name in ['auditlog', 'blogpost', 'task']:
         kwargs = {'project_repo': project_repo}
