@@ -26,7 +26,7 @@ from flask import request
 from flask.ext.login import current_user
 from pybossa.model.task_run import TaskRun
 from pybossa.model.completed_task_run import CompletedTaskRun
-from werkzeug.exceptions import Forbidden, BadRequest
+from werkzeug.exceptions import Forbidden, BadRequest, MethodNotAllowed
 
 from task_run import TaskRunAPI
 from pybossa.util import get_user_id_or_ip

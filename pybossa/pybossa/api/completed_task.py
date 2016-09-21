@@ -22,7 +22,7 @@ This package adds GET methods for:
     * tasks
 
 """
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, MethodNotAllowed
 from flask import request
 from pybossa.model.task import Task
 #from pybossa.model.completed_task import CompletedTask
@@ -35,7 +35,7 @@ class CompletedTaskAPI(TaskAPI):
 
     __class__ = Task
     #__class__ = CompletedTask
-    reserved_keys = set(['id', 'created', 'state', 'exported'])
+    reserved_keys = set(['id', 'created', 'state'])
     
     def _forbidden_attributes(self, data):
         for key in data.keys():
@@ -43,13 +43,10 @@ class CompletedTaskAPI(TaskAPI):
                 raise BadRequest("Reserved keys in payload")
 
     def post(self):
-        raise MethodNotAllowed(valid_methods=['GET'])
+        raise MethodNotAllowed(valid_methods=['GET','PUT'])
 
     def delete(self, oid=None):
-        raise MethodNotAllowed(valid_methods=['GET'])
-
-    def put(self, oid=None):
-        raise MethodNotAllowed(valid_methods=['GET'])
+        raise MethodNotAllowed(valid_methods=['GET','PUT'])
 
     def is_admin_api_key(self):
         """Check if api_key passed is of admin_user"""
