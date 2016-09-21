@@ -43,10 +43,10 @@ class CompletedTaskAPI(TaskAPI):
                 raise BadRequest("Reserved keys in payload")
 
     def post(self):
-        raise MethodNotAllowed(valid_methods=['GET'])
+        raise MethodNotAllowed(valid_methods=['GET','PUT'])
 
     def delete(self, oid=None):
-        raise MethodNotAllowed(valid_methods=['GET'])
+        raise MethodNotAllowed(valid_methods=['GET','PUT'])
 
     def is_admin_api_key(self):
         """Check if api_key passed is of admin_user"""
