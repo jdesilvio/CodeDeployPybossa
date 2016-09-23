@@ -76,7 +76,7 @@ def ensure_authorized_to(action, resource, **kwargs):
 
 def _authorizer_for(resource_name):
     kwargs = {}
-    if resource_name in [ 'taskrun', 'completedtaskrun']:
+    if resource_name in ['taskrun', 'completedtaskrun']:
         kwargs = {'task_repo': task_repo, 'project_repo': project_repo}
     if resource_name in ['auditlog', 'blogpost', 'task']:
         kwargs = {'project_repo': project_repo}
