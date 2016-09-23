@@ -19,6 +19,7 @@
 from flask import abort
 
 class CompletedTaskRunAuth(object):
+    
     def __init__(self, task_repo, project_repo):
         self.task_repo = task_repo
         self.project_repo = project_repo
