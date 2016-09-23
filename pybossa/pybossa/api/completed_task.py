@@ -19,13 +19,12 @@
 PyBossa api module for exposing domain object Task having completed tasks via an API.
 
 This package adds GET methods for:
-    * tasks
+    * completedtasks
 
 """
 from werkzeug.exceptions import BadRequest, MethodNotAllowed
 from flask import request
 from pybossa.model.task import Task
-#from pybossa.model.completed_task import CompletedTask
 from task import TaskAPI
 from pybossa.core import user_repo
 
@@ -34,7 +33,6 @@ class CompletedTaskAPI(TaskAPI):
     """Class for domain object Task."""
 
     __class__ = Task
-    #__class__ = CompletedTask
     reserved_keys = set(['id', 'created', 'state'])
     
     def _forbidden_attributes(self, data):
