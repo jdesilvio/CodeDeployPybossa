@@ -26,6 +26,8 @@ This package adds GET, POST, PUT and DELETE methods for:
     * users,
     * global_stats,
     * vmcp
+    * completedtasks
+    * completedtaskruns
 
 """
 
