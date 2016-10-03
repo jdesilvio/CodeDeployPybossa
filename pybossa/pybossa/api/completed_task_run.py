@@ -18,33 +18,70 @@
 """
 PyBossa api module for exposing domain object TaskRun for completed tasks via an API.
 
-This package adds GET methods for:
-    * task_runs
+This package adds GET method for:
+    * completedtaskruns
 
 """
-from flask import request
+from flask import redirect, url_for, request, Response
 from flask.ext.login import current_user
+from api_base import APIBase
+from pybossa.auth import ensure_authorized_to
 from pybossa.model.task_run import TaskRun
-from pybossa.model.completed_task_run import CompletedTaskRun
-from werkzeug.exceptions import Forbidden, BadRequest, MethodNotAllowed
+from pybossa.core import user_repo
+from pybossa.error import ErrorStatus
+from pybossa.core import task_repo
+from werkzeug.exceptions import BadRequest, MethodNotAllowed
 
-from task_run import TaskRunAPI
-from pybossa.util import get_user_id_or_ip
-from pybossa.core import user_repo, task_repo, sentinel
+error = ErrorStatus()
 
+# cloned from AppAPI
+class CompletedTaskRunAPI(APIBase):
 
-class CompletedTaskRunAPI(TaskRunAPI):
+    """
+    Class for the domain object TaskRun.
 
-    """Class API for domain object TaskRun."""
+    """
 
-    __class__ = CompletedTaskRun
-    reserved_keys = set(['id', 'created', 'finish_time'])
-   
-    def _forbidden_attributes(self, data):
-        for key in data.keys():
-            if key in self.reserved_keys:
-                raise BadRequest("Reserved keys in payload")
- 
+    __class__ = TaskRun
+
+    def get(self, oid):
+        """Get taskruns for all completed tasks. Need admin access"""
+        try:
+            ensure_authorized_to('read', self.__class__)
+            # check admin access
+            if 'api_key' in request.args.keys():
+                apikey = request.args['api_key']
+                user = user_repo.get_by(api_key=apikey)
+                if not user or user.admin is False:
+                    raise BadRequest("Insufficient privilege to the request")
+            else:
+                raise BadRequest("Insufficient privilege to the request")
+                    
+            # set filter from args
+            filters = {}
+            for k in request.args.keys():
+                if k not in ['limit', 'offset', 'api_key']:
+                    # 'exported' column belongs to Task class
+                    # ignore it for attr check in TaskRun class
+                    # but add it to filter so that its checked
+                    # against Task class in filter_completed_task_runs_by
+                    if k not in ['exported']:
+                        # Raise an error if the k arg is not a column
+                        getattr(self.__class__, k)    
+                    filters[k] = request.args[k]
+            
+            # set limit, offset    
+            limit, offset = self._set_limit_and_offset()
+            # query database to obtain the requested data
+            query = task_repo.filter_completed_task_runs_by(limit=limit, offset=offset, **filters)
+            json_response = self._create_json_response(query, oid)
+            return Response(json_response, mimetype='application/json')
+        except Exception as e:
+            return error.format_exception(
+                e,
+                target=self.__class__.__name__.lower(),
+            action='GET')
+
     def post(self):
         raise MethodNotAllowed(valid_methods=['GET'])
 
@@ -53,38 +90,3 @@ class CompletedTaskRunAPI(TaskRunAPI):
 
     def put(self, oid=None):
         raise MethodNotAllowed(valid_methods=['GET'])
-
-    def is_admin_api_key(self):
-        """Check if api_key passed is of admin_user"""
-        if 'api_key' in request.args.keys():
-            apikey = request.args['api_key']
-            user = user_repo.get_by(api_key=apikey)
-            if user:
-                return user.admin
-        return False
-
-    def _custom_filter(self, filters):
-        # authorize admin api_key to perform this operation
-        if self.is_admin_api_key():
-            return filters
-        raise BadRequest("Insufficient privilege to the request")
-
-    def _filter_query(self, repo_info, limit, offset):
-        filters = {}
-        for k in request.args.keys():
-            if k not in ['limit', 'offset', 'api_key', 'exported']:
-                # Raise an error if the k arg is not a column
-                getattr(self.__class__, k)
-            
-            # if exported col is part of k, add it to the filter
-            # as it is part of Task table and will be explicitly
-            # searched in Task table later
-            if k not in ['limit', 'offset', 'api_key']:
-                filters[k] = request.args[k]
-        repo = repo_info['repo']
-        query_func = repo_info['filter']
-        filters = self._custom_filter(filters)
-        results = getattr(repo, query_func)(limit=limit, offset=offset, **filters)
-        return results
-
-
