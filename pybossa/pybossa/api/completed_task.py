@@ -18,49 +18,74 @@
 """
 PyBossa api module for exposing domain object Task having completed tasks via an API.
 
-This package adds GET methods for:
+This package adds GET method for:
     * completedtasks
 
 """
-from werkzeug.exceptions import BadRequest, MethodNotAllowed
-from flask import request
+from flask import redirect, url_for, request, Response
+from flask.ext.login import current_user
+from api_base import APIBase
+from pybossa.auth import ensure_authorized_to
 from pybossa.model.task import Task
-from task import TaskAPI
 from pybossa.core import user_repo
+from pybossa.error import ErrorStatus
+from pybossa.core import task_repo
+from werkzeug.exceptions import BadRequest, MethodNotAllowed
 
-class CompletedTaskAPI(TaskAPI):
+error = ErrorStatus()
 
-    """Class for domain object Task."""
+
+class CompletedTaskAPI(APIBase):
+
+    """
+    Class for the domain object Task.
+
+    """
 
     __class__ = Task
-    reserved_keys = set(['id', 'created', 'state'])
-    
-    def _forbidden_attributes(self, data):
-        for key in data.keys():
-            if key in self.reserved_keys:
-                raise BadRequest("Reserved keys in payload")
+
+    def get(self, oid):
+        """Get all completed tasks. Need admin access"""
+        try:
+            ensure_authorized_to('read', self.__class__)
+            # check admin access
+            if 'api_key' in request.args.keys():
+                apikey = request.args['api_key']
+                user = user_repo.get_by(api_key=apikey)
+                if not user or user.admin is False:
+                    raise BadRequest("Insufficient privilege to the request")
+            else:
+                raise BadRequest("Insufficient privilege to the request")
+                    
+            # set filter from args
+            # add 'state'='completed' if missing
+            filters = {}
+            filters['state'] = 'completed'
+            for k in request.args.keys():
+                if k not in ['limit', 'offset', 'api_key']:
+                    # 'exported' column belongs to Task class
+                    # ignore it for attr check in TaskRun class
+                    # but add it to filter so that its checked
+                    # against Task class in filter_completed_task_runs_by
+                    if k not in ['exported']:
+                        # Raise an error if the k arg is not a column
+                        getattr(self.__class__, k)    
+                    filters[k] = request.args[k]
+            
+            # set limit, offset    
+            limit, offset = self._set_limit_and_offset()
+            # query database to obtain the requested data
+            query = task_repo.filter_tasks_by(limit=limit, offset=offset, **filters)
+            json_response = self._create_json_response(query, oid)
+            return Response(json_response, mimetype='application/json')
+        except Exception as e:
+            return error.format_exception(
+                e,
+                target=self.__class__.__name__.lower(),
+            action='GET')
 
     def post(self):
         raise MethodNotAllowed(valid_methods=['GET','PUT'])
 
     def delete(self, oid=None):
         raise MethodNotAllowed(valid_methods=['GET','PUT'])
-
-    def is_admin_api_key(self):
-        """Check if api_key passed is of admin_user"""
-        if 'api_key' in request.args.keys():
-            apikey = request.args['api_key']
-            user = user_repo.get_by(api_key=apikey)
-            if user:
-                return user.admin
-        return False
-
-    def _custom_filter(self, filters):
-        # authorise admin api_key to perform this operation
-        if self.is_admin_api_key():
-            # add 'state'='completed' to the filter if missing
-            filters['state'] = 'completed'
-            return filters
-        raise BadRequest("Insufficient privilege to the request")
-  
-
