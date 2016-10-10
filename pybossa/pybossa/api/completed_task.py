@@ -31,9 +31,12 @@ from pybossa.core import user_repo
 from pybossa.error import ErrorStatus
 from pybossa.core import task_repo
 from werkzeug.exceptions import BadRequest, MethodNotAllowed
+from pybossa.util import jsonpify, crossdomain
+from pybossa.core import ratelimits
+from pybossa.ratelimit import ratelimit
 
+cors_headers = ['Content-Type', 'Authorization']
 error = ErrorStatus()
-
 
 class CompletedTaskAPI(APIBase):
 
@@ -44,6 +47,9 @@ class CompletedTaskAPI(APIBase):
 
     __class__ = Task
 
+    @jsonpify
+    @crossdomain(origin='*', headers=cors_headers)
+    @ratelimit(limit=ratelimits.get('LIMIT'), per=ratelimits.get('PER'))
     def get(self, oid):
         """Get all completed tasks. Need admin access"""
         try:
