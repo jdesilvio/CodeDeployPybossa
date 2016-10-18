@@ -102,10 +102,13 @@ def _email_two_factor_auth(user):
         otpauths[user.email_addr] =  None
         otpauths[user.email_addr] =  OtpAuth(base64.b32encode(os.urandom(10)).decode('utf-8'))
         otpsecret = otpauths[user.email_addr]
+        current_app.logger.info('OTPLOG: otp generated details. user: <{0}>, otpsecret: <{1}>'.format(user.email_addr, otpsecret))
         if otpsecret is None:
             flash(gettext("Problem with generating one time password"), 'error')
+            current_app.logger.error('OTPLOG: otpsecret is None for user: {0}'.format(user.email_addr))
         else:
             otpcode = otpsecret.totp(period=600) # otp valid for 10 mins
+            current_app.logger.info('OTPLOG: user: {0}, otpcode: <{1}>'.format(user.email_addr, otpcode))
             print '********** OTP code generated before sending email: %r' % otpcode
             msg['html'] = render_template(
                                 '/account/email/otp.html',
@@ -113,6 +116,7 @@ def _email_two_factor_auth(user):
             mail_queue.enqueue(send_mail, msg)
             flash(gettext("An email has been sent to you with one time password"),'success')
     else:
+        current_app.logger.info('OTPLOG: user: {0} not found'.format(user))
         flash(gettext("We don't have this email in our records. "
                       "You may have signed up with a different "
                       "email or used Twitter, Facebook, or "
@@ -123,21 +127,31 @@ def otpvalidation(email):
     print '********** inside otpvalidation. request: %r' % request
     form = OTPForm(request.form)
     otp = int(form.otp.data)
+    current_app.logger.info('OTPLOG: otpvalidation: otp: <{0}>'.format(otp))
     print '************ user email: %r' % email
     user = user_repo.get_by(email_addr=email)
     if request.method == 'POST' and form.validate():
         if otpauths.get(email) is not None:
             otpsecret = otpauths[email]
+            current_app.logger.info('OTPLOG: otpvalidation: otp details. user: <{0}>, otpsecret: {1}'.format(email, otpsecret))
             if (otpsecret.valid_totp(otp, period=600)):
                 # user provided valid otp, signin user
                 msg = gettext("OTP verified. You are logged in to the system")
                 flash(msg, 'note')
                 _sign_in_user(user)
+                current_app.logger.info('OTPLOG: success: user: <{0}> logged in with otp: <{1}>'.format(email, otp))
                 return redirect(url_for("home.home"))
             else:
                 # invalid otp
                 msg = gettext("Invalid one time password")
+                current_app.logger.error('OTPLOG: {0}: user: <{1}>, otp submitted by user: <{2}>'.format(msg, email, otp))
+                otpcode = otpsecret.totp()
+                otpcode10m = otpsecret.totp(period=600)
+                current_app.logger.info('OTPLOG: otpcode: {0}, otpcode10m: {1}'.format(otpcode, otpcode10m))
+                current_app.logger.info('OTPLOG: otpauths: {0}'.format(otpauths))               
                 flash(msg, 'error')
+        else:
+            current_app.logger.error('OTPLOG:  no otpauths for user: <{0}>'.format(email))               
         _email_two_factor_auth(user)
         otpform = OTPForm(request.form)
     return render_template('/account/otpvalidation.html', 
