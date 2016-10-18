@@ -100,14 +100,15 @@ def _email_two_factor_auth(user):
             '/account/email/otp.md',
             user=user)
         otpauths[user.email_addr] =  None
-        otpauths[user.email_addr] =  OtpAuth(base64.b32encode(os.urandom(10)).decode('utf-8'))
-        otpsecret = otpauths[user.email_addr]
-        current_app.logger.info('OTPLOG: otp generated details. user: <{0}>, otpsecret: <{1}>'.format(user.email_addr, otpsecret))
+        otpsecret_key = base64.b32encode(os.urandom(10)).decode('utf-8')
+        otpauths[user.email_addr] =  otpsecret_key
+        otpsecret = OtpAuth(otpsecret_key)
+        current_app.logger.info('OTPLOG: otp generated details. user: <{0}>, otpsecret_key: <{1}>'.format(user.email_addr, otpsecret_key))
         if otpsecret is None:
             flash(gettext("Problem with generating one time password"), 'error')
             current_app.logger.error('OTPLOG: otpsecret is None for user: {0}'.format(user.email_addr))
         else:
-            otpcode = otpsecret.totp(period=600) # otp valid for 10 mins
+            otpcode = otpsecret.totp(period=300) # otp valid for 5 mins
             current_app.logger.info('OTPLOG: user: {0}, otpcode: <{1}>'.format(user.email_addr, otpcode))
             print '********** OTP code generated before sending email: %r' % otpcode
             msg['html'] = render_template(
@@ -132,9 +133,10 @@ def otpvalidation(email):
     user = user_repo.get_by(email_addr=email)
     if request.method == 'POST' and form.validate():
         if otpauths.get(email) is not None:
-            otpsecret = otpauths[email]
-            current_app.logger.info('OTPLOG: otpvalidation: otp details. user: <{0}>, otpsecret: {1}'.format(email, otpsecret))
-            if (otpsecret.valid_totp(otp, period=600)):
+            otpsecret_key = otpauths[email]
+            current_app.logger.info('OTPLOG: otpvalidation: otp details. user: <{0}>, otpsecret_key: {1}'.format(user.email_addr, otpsecret_key))
+            otpsecret = OtpAuth(otpsecret_key)
+            if (otpsecret and otpsecret.valid_totp(otp, period=300)):
                 # user provided valid otp, signin user
                 msg = gettext("OTP verified. You are logged in to the system")
                 flash(msg, 'note')
@@ -145,9 +147,6 @@ def otpvalidation(email):
                 # invalid otp
                 msg = gettext("Invalid one time password")
                 current_app.logger.error('OTPLOG: {0}: user: <{1}>, otp submitted by user: <{2}>'.format(msg, email, otp))
-                otpcode = otpsecret.totp()
-                otpcode10m = otpsecret.totp(period=600)
-                current_app.logger.info('OTPLOG: otpcode: {0}, otpcode10m: {1}'.format(otpcode, otpcode10m))
                 current_app.logger.info('OTPLOG: otpauths: {0}'.format(otpauths))               
                 flash(msg, 'error')
         else:
