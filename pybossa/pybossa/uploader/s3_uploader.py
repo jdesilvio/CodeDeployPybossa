@@ -6,7 +6,7 @@ from werkzeug.utils import secure_filename
 def s3_upload_from_string(string, filename, headers=None, directory=""):
 
     if directory:
-        upload_dir = "/".join(app.config["S3_UPLOAD_DIRECTORY", directory])
+        upload_dir = "/".join([app.config["S3_UPLOAD_DIRECTORY"], directory])
     else:
         upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
 
@@ -31,12 +31,12 @@ def s3_upload_file_obj(source_file, directory=""):
     """
 
     if directory:
-        upload_dir = "/".join(app.config["S3_UPLOAD_DIRECTORY", directory])
+        upload_dir = "/".join([app.config["S3_UPLOAD_DIRECTORY"], directory])
     else:
         upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
 
     filename = secure_filename(source_file.filename)
-    headers = {"Content-Type": filename.content_type}
+    headers = {"Content-Type": source_file.content_type}
     # Connect to S3 and upload file.
     conn = boto.connect_s3(app.config["S3_KEY"], app.config["S3_SECRET"])
     b = conn.get_bucket(app.config["S3_BUCKET"])
