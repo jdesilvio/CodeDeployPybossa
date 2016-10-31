@@ -179,6 +179,7 @@ class APIBase(MethodView):
         try:
             self.valid_args()
             data = json.loads(request.data)
+            self._preprocess_post_data(data)
             self._forbidden_attributes(data)
             inst = self._create_instance_from_request(data)
             repo = repos[self.__class__.__name__]['repo']
@@ -191,6 +192,11 @@ class APIBase(MethodView):
                 e,
                 target=self.__class__.__name__.lower(),
                 action='POST')
+
+    def _preprocess_post_data(self, data):
+        """Method to be overriden by inheriting classes that will
+        perform preprocessing on the POST data"""
+        pass
 
     def _create_instance_from_request(self, data):
         data = self.hateoas.remove_links(data)
