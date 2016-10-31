@@ -27,6 +27,7 @@ from flask.ext.login import current_user
 from pybossa.model.task_run import TaskRun
 from werkzeug.exceptions import Forbidden, BadRequest
 from werkzeug import secure_filename
+import os
 
 from api_base import APIBase
 from pybossa.util import get_user_id_or_ip
@@ -46,10 +47,9 @@ class TaskRunAPI(APIBase):
     def _preprocess_post_data(self, data):
         task_id = data['task_id']
         project_id = data['project_id']
-        user_id = data['user_id']
+        user_id = current_user.id
         info = data['info']
-        path = "{0}/{1}/{2}/{3}".format('dev', project_id, task_id, user_id)
-        print "hic sunt leones"
+        path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
         for key in info:
             if key.endswith('__upload_url'):
                 filename = info[key]['filename']
@@ -58,7 +58,7 @@ class TaskRunAPI(APIBase):
                 content = info[key]['content']
                 s3_url = s3_upload_from_string(content, filename,
                                                upload_dir=path)
-                data[key] = s3_url
+                info[key] = s3_url
 
     def _validate_filename(self, filename):
         extension = os.path.splitext(filename)[1]

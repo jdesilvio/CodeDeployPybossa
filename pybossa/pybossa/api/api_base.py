@@ -179,8 +179,8 @@ class APIBase(MethodView):
         try:
             self.valid_args()
             data = json.loads(request.data)
-            self._preprocess_post_data(data)
             self._forbidden_attributes(data)
+            self._preprocess_post_data(data)
             inst = self._create_instance_from_request(data)
             repo = repos[self.__class__.__name__]['repo']
             save_func = repos[self.__class__.__name__]['save']

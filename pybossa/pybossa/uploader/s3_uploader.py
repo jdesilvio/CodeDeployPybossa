@@ -9,20 +9,14 @@ from flask import current_app as app
 
 def s3_upload_from_string(string, filename, headers=None, upload_dir=None):
     if upload_dir is None:
-        upload_dir = ""  # app.config["S3_UPLOAD_DIRECTORY"]
-
-    source_filename = filename  # secure_filename(filename)
-    source_extension = os.path.splitext(source_filename)[1]
-
-    destination_filename = source_filename + source_extension
+        upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
 
     # Connect to S3 and upload file.
     conn = boto.connect_s3(app.config["S3_KEY"], app.config["S3_SECRET"])
     b = conn.get_bucket(app.config["S3_BUCKET"])
 
-    key = b.new_key("/".join([upload_dir, destination_filename]))
+    key = b.new_key("/".join([upload_dir, filename]))
     key.set_contents_from_string(string, headers=headers)
-    key.set_acl(acl)
 
     return key.generate_url(0).split('?', 1)[0]
 
@@ -34,26 +28,18 @@ def s3_upload(source_file, upload_dir=None):
             S3_SECRET           :   S3 Secret Key
             S3_BUCKET           :   What bucket to upload to
             S3_UPLOAD_DIRECTORY :   Which S3 Directory.
-        The default sets the access rights on the uploaded file to
-        public-read.  It also generates a unique filename via
-        the uuid4 function combined with the file extension from
-        the source file.
     """
 
     if upload_dir is None:
         upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
 
-    source_filename = filename  # secure_filename(source_file.data.filename)
-    source_extension = os.path.splitext(source_filename)[1]
-
-    destination_filename = uuid4().hex + source_extension
+    source_filename = source_file.data.filename
 
     # Connect to S3 and upload file.
     conn = boto.connect_s3(app.config["S3_KEY"], app.config["S3_SECRET"])
     b = conn.get_bucket(app.config["S3_BUCKET"])
 
-    key = b.new_key("/".join([upload_dir, destination_filename]))
+    key = b.new_key("/".join([upload_dir, source_filename]))
     key.set_contents_from_string(source_file.data.read())
-    key.set_acl(acl)
 
-    return destination_filename
+    return key.generate_url(0).split('?', 1)[0]
