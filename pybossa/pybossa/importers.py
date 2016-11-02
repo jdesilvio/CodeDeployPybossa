@@ -23,6 +23,7 @@ from StringIO import StringIO
 from flask.ext.babel import gettext
 from pybossa.util import unicode_csv_reader
 from flask import request
+import io
 
 
 class BulkImportException(Exception):
@@ -154,7 +155,7 @@ class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
             raise BulkImportException(gettext(msg), 'error')
         
         file.stream.seek(0)
-        csvcontent = StringIO(file.stream.read())
+        csvcontent = io.StringIO(file.stream.read().decode("UTF8"))
         csvreader = unicode_csv_reader(csvcontent)
         return self._import_csv_tasks(csvreader)
         
