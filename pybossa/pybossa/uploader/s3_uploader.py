@@ -5,6 +5,7 @@ import magic
 from tempfile import NamedTemporaryFile
 import os
 from werkzeug.exceptions import BadRequest
+import re
 
 
 allowed_mime_types = ['application/pdf',
@@ -22,6 +23,12 @@ def check_type(filename):
     mime_type = magic.from_file(filename, mime=True)
     if mime_type not in allowed_mime_types:
         raise BadRequest("File Type Not Supported")
+
+
+def validate_directory(directory_name):
+    invalid_chars = "[^\w\/]"
+    if re.search(invalid_chars, directory_name):
+        raise RuntimeError("Invalid character in directory name")
 
 
 def tmp_file_from_string(string):
@@ -78,6 +85,7 @@ def s3_upload_file(fp, filename, headers, directory=""):
         upload_dir = "/".join([app.config["S3_UPLOAD_DIRECTORY"], directory])
     else:
         upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
+    validate_directory(upload_dir)
 
     filename = secure_filename(filename)
     conn = boto.connect_s3(app.config["S3_KEY"], app.config["S3_SECRET"])
