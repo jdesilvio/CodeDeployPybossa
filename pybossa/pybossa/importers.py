@@ -23,8 +23,8 @@ from StringIO import StringIO
 from flask.ext.babel import gettext
 from pybossa.util import unicode_csv_reader
 from flask import request
+from werkzeug.datastructures import FileStorage
 import io
-
 
 class BulkImportException(Exception):
 
@@ -47,7 +47,7 @@ class _BulkTaskImport(object):
         """Return amount of tasks to be imported."""
         return len([task for task in self.tasks(**form_data)])
 
-
+        
 class _BulkTaskCSVImport(_BulkTaskImport):
 
     """Class to import CSV tasks in bulk."""
@@ -126,7 +126,6 @@ class _BulkTaskCSVImport(_BulkTaskImport):
         csvreader = unicode_csv_reader(csvcontent)
         return self._import_csv_tasks(csvreader)
 
-
 class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
 
     """Class to import CSV tasks in bulk from local file."""
@@ -137,23 +136,25 @@ class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
         """Get data."""
         return form_data['csv_filename']
         
-    def _get_csv_data_from_request(self, csv_filename):        
+    def _get_csv_data_from_request(self, csv_filename):
         if csv_filename is None:
             msg = ("Not a valid csv file for import")
             raise BulkImportException(gettext(msg), 'error')
 
-        if (('text/plain' not in request.headers['content-type']) and
-                ('text/csv' not in request.headers['content-type']) and
-                ('multipart/form-data' not in request.headers['content-type'])):
-            msg = gettext("Oops! That file doesn't look like the right file.")
-            raise BulkImportException(msg, 'error')
+        file = FileStorage(open(csv_filename, 'r'))
+        if file is None:
+            if (('text/plain' not in request.headers['content-type']) and
+                    ('text/csv' not in request.headers['content-type']) and
+                    ('multipart/form-data' not in request.headers['content-type'])):
+                msg = gettext("Oops! That file doesn't look like the right file.")
+                raise BulkImportException(msg, 'error')
 
-        request.encoding = 'utf-8'
-        file = request.files['file']
-        if file is None or file.stream is None:
-            msg = ("Not a valid csv file for import")
-            raise BulkImportException(gettext(msg), 'error')
-        
+            request.encoding = 'utf-8'
+            file = request.files['file']
+            if file is None or file.stream is None:
+                msg = ("Not a valid csv file for import")
+                raise BulkImportException(gettext(msg), 'error') 
+            
         file.stream.seek(0)
         csvcontent = io.StringIO(file.stream.read().decode("UTF8"))
         csvreader = unicode_csv_reader(csvcontent)
@@ -163,8 +164,8 @@ class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
         """Get tasks from a given URL."""
         csv_filename = self._get_data(**form_data)
         return self._get_csv_data_from_request(csv_filename)
-
-
+                
+        
 class _BulkTaskGDImport(_BulkTaskCSVImport):
 
     """Class to import tasks from Google Drive in bulk."""
@@ -181,6 +182,7 @@ class _BulkTaskGDImport(_BulkTaskCSVImport):
         else:
             return ''.join([form_data['googledocs_url'].split('edit')[0],
                             'export?format=csv'])
+
 
 
 class _BulkTaskEpiCollectPlusImport(_BulkTaskImport):
