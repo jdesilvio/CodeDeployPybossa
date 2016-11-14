@@ -25,6 +25,7 @@ from pybossa.util import unicode_csv_reader
 from flask import request
 from werkzeug.datastructures import FileStorage
 import io
+import time
 
 class BulkImportException(Exception):
 
@@ -140,9 +141,18 @@ class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
         if csv_filename is None:
             msg = ("Not a valid csv file for import")
             raise BulkImportException(gettext(msg), 'error')
-
-        file = FileStorage(open(csv_filename, 'r'))
-        if file is None:
+        
+        retry = 0
+        csv_file = None
+        while retry < 5:
+            try:
+                csv_file = FileStorage(open(csv_filename, 'r'))
+                break
+            except IOError, e:
+                time.sleep(1)
+                retry += 1
+ 
+        if csv_file is None:
             if (('text/plain' not in request.headers['content-type']) and
                     ('text/csv' not in request.headers['content-type']) and
                     ('multipart/form-data' not in request.headers['content-type'])):
@@ -150,13 +160,13 @@ class _BulkTaskLocalCSVImport(_BulkTaskCSVImport):
                 raise BulkImportException(msg, 'error')
 
             request.encoding = 'utf-8'
-            file = request.files['file']
-            if file is None or file.stream is None:
+            csv_file = request.files['file']
+            if csv_file is None or file.stream is None:
                 msg = ("Not a valid csv file for import")
                 raise BulkImportException(gettext(msg), 'error') 
             
-        file.stream.seek(0)
-        csvcontent = io.StringIO(file.stream.read().decode("UTF8"))
+        csv_file.stream.seek(0)
+        csvcontent = io.StringIO(csv_file.stream.read().decode("UTF8"))
         csvreader = unicode_csv_reader(csvcontent)
         return self._import_csv_tasks(csvreader)
         
