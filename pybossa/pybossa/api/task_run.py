@@ -30,6 +30,8 @@ from werkzeug.exceptions import Forbidden, BadRequest
 from api_base import APIBase
 from pybossa.util import get_user_id_or_ip
 from pybossa.core import task_repo, sentinel
+from pybossa.uploader.s3_uploader import s3_upload_from_string
+from pybossa.uploader.s3_uploader import s3_upload_file_storage
 
 
 class TaskRunAPI(APIBase):
@@ -39,13 +41,33 @@ class TaskRunAPI(APIBase):
     __class__ = TaskRun
     reserved_keys = set(['id', 'created', 'finish_time'])
 
+    def _preprocess_post_data(self, data):
+        task_id = data['task_id']
+        project_id = data['project_id']
+        user_id = current_user.id
+        info = data['info']
+        path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
+        for key in info:
+            if key.endswith('__upload_url'):
+                filename = info[key]['filename']
+                content = info[key]['content']
+                s3_url = s3_upload_from_string(content, filename,
+                                               directory=path)
+                info[key] = s3_url
+        for key in request.files:
+            if not key.endswith('__upload_url'):
+                raise BadRequest("File upload field should end in __upload_url")
+            file_obj = request.files[key]
+            s3_url = s3_upload_file_storage(file_obj, directory=path)
+            info[key] = s3_url
+
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
         # validate the task and project for that taskrun are ok
         task = task_repo.get_task(taskrun.task_id)
         if task is None:  # pragma: no cover
             raise Forbidden('Invalid task_id')
-        if (task.project_id != taskrun.project_id):
+        if task.project_id != taskrun.project_id:
             raise Forbidden('Invalid project_id')
         if _check_task_requested_by_user(taskrun, sentinel.master) is False:
             raise Forbidden('You must request a task first!')
