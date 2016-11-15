@@ -33,7 +33,7 @@ from pybossa.core import task_repo, sentinel
 from pybossa.uploader.s3_uploader import s3_upload_from_string
 from pybossa.gig_utils import json_traverse
 from pybossa.uploader.s3_uploader import s3_upload_file_storage
-
+from datetime import datetime
 
 class TaskRunAPI(APIBase):
 
@@ -53,8 +53,9 @@ class TaskRunAPI(APIBase):
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
-        # validate the task and project for that taskrun are ok
         task = task_repo.get_task(taskrun.task_id)
+
+        # validate the task and project for that taskrun are ok
         if task is None:  # pragma: no cover
             raise Forbidden('Invalid task_id')
         if task.project_id != taskrun.project_id:
@@ -62,16 +63,28 @@ class TaskRunAPI(APIBase):
         if _check_task_requested_by_user(taskrun, sentinel.master) is False:
             raise Forbidden('You must request a task first!')
 
-        # Add the user info so it cannot post again the same taskrun
-        if current_user.is_anonymous():
-            taskrun.user_ip = request.remote_addr
-        else:
-            taskrun.user_id = current_user.id
+        # validate and modify taskrun attributes
+        self._add_user_info(taskrun)
+        self._add_created_timestamp(taskrun, task)
+        self._add_finish_timestamp(taskrun, task)
 
     def _forbidden_attributes(self, data):
         for key in data.keys():
             if key in self.reserved_keys:
                 raise BadRequest("Reserved keys in payload")
+
+    def _add_user_info(self, taskrun):
+        if current_user.is_anonymous():
+            taskrun.user_ip = request.remote_addr
+        else:
+            taskrun.user_id = current_user.id
+
+    def _add_created_timestamp(self, taskrun, task):
+        taskrun.created = _validate_datetime(taskrun.info.pop('start_time'))
+
+    def _add_finish_timestamp(self, taskrun, task):
+        taskrun.finish_time = _validate_datetime(taskrun.info.pop('end_time'))
+
 
 
 def _check_task_requested_by_user(taskrun, redis_conn):
@@ -82,7 +95,6 @@ def _check_task_requested_by_user(taskrun, redis_conn):
     if user_id_ip['user_id'] is not None:
         redis_conn.delete(key)
     return task_requested
-
 
 def _upload_files_from_json(task_run_info, upload_path):
     def func(obj, key, value):
@@ -105,3 +117,10 @@ def _upload_files_from_request(task_run_info, files, upload_path):
         file_obj = request.files[key]
         s3_url = s3_upload_file_storage(file_obj, directory=upload_path)
         task_run_info[key] = s3_url
+
+def _validate_datetime(timestamp):
+    try:
+        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        return timestamp.isoformat()
+    except ValueError:
+        raise ValueError("Incorrect data format")
