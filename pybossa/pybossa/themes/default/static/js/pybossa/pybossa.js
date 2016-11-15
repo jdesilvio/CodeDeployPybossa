@@ -16,7 +16,8 @@
 
 
 (function(pybossa, $, undefined) {
-    var url = '/';
+    var url = '/',
+        startTime;
 
     //AJAX calls
     function _userProgress(projectname) {
@@ -42,6 +43,7 @@
             dataType: 'json'
         });
     }
+    
     function _fetchTask(taskId) {
         return $.ajax({
             url: url + 'api/task/' + taskId,
@@ -79,6 +81,12 @@
         return task;
     }
 
+    function _addTimesToTaskRunInfo(taskrun) {
+        taskrun.info.start_time = startTime;
+        taskrun.info.end_time = new Date().toJSON();
+        return taskrun;
+    }
+
     function _createTaskRun(answer, task) {
         task = _addAnswerToTask(task, answer);
         var taskrun = {
@@ -86,6 +94,7 @@
             'task_id': task.id,
             'info': task.answer
         };
+        taskrun = _addTimesToTaskRunInfo(taskrun);
         taskrun = JSON.stringify(taskrun);
         return _saveTaskRun(taskrun).then(function(data) {return data;});
     }
@@ -166,6 +175,7 @@
                     history.pushState({}, "Title", nextUrl);
                 }
                 _presentTask(task, taskSolved);
+                startTime = new Date().toJSON();
                 $.when(nextLoaded, taskSolved).done(loop);
             }
             getNextTask(0, undefined).done(loop);
