@@ -32,7 +32,8 @@ import re
 from wtforms.validators import ValidationError
 from flask import request
 from werkzeug.utils import secure_filename
-import tempfile, os
+from pybossa.core import uploader
+from pybossa.uploader import local
 
 EMAIL_MAX_LENGTH = 254
 USER_NAME_MAX_LENGTH = 35
@@ -171,18 +172,18 @@ class _BulkTaskLocalCSVImportForm(Form):
             if 'file' not in request.files:
                 flash('No file part')
                 return {'type': 'localcsv', 'csv_filename': None}
-            file = request.files['file']
-            if file.filename == '':
+            csv_file = request.files['file']
+            if csv_file.filename == '':
                 flash('No file selected')
                 return {'type': 'localcsv', 'csv_filename': None}
-            if file and self._allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                tmpfile = tempfile.NamedTemporaryFile(delete=False)
+            if csv_file and self._allowed_file(csv_file.filename):
+                filename = secure_filename(csv_file.filename)
+                tmpfile = '{0}/{1}'.format(uploader.upload_folder, filename)
                 try:
-                    tmpfile.file.write(file.stream.read())
-                    return {'type': 'localcsv', 'csv_filename': tmpfile.name}
+                    with open(tmpfile, 'w') as fp:  
+                        fp.write(csv_file.stream.read())
+                    return {'type': 'localcsv', 'csv_filename': tmpfile}
                 except Exception as e:
-                    os.unlink(tmpfile.name)
                     raise e    
         return {'type': 'localcsv', 'csv_filename': None}
         
