@@ -33,7 +33,6 @@ from wtforms.validators import ValidationError
 from flask import request
 from werkzeug.utils import secure_filename
 from pybossa.core import uploader
-from pybossa.uploader import local
 
 EMAIL_MAX_LENGTH = 254
 USER_NAME_MAX_LENGTH = 35
@@ -179,12 +178,9 @@ class _BulkTaskLocalCSVImportForm(Form):
             if csv_file and self._allowed_file(csv_file.filename):
                 filename = secure_filename(csv_file.filename)
                 tmpfile = '{0}/{1}'.format(uploader.upload_folder, filename)
-                try:
-                    with open(tmpfile, 'w') as fp:  
-                        fp.write(csv_file.stream.read())
-                    return {'type': 'localcsv', 'csv_filename': tmpfile}
-                except Exception as e:
-                    raise e    
+                with open(tmpfile, 'w') as fp:  
+                    fp.write(csv_file.stream.read())
+                return {'type': 'localcsv', 'csv_filename': tmpfile}
         return {'type': 'localcsv', 'csv_filename': None}
         
 
