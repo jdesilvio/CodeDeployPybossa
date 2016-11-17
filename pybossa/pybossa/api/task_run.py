@@ -26,12 +26,12 @@ from flask import request
 from flask.ext.login import current_user
 from pybossa.model.task_run import TaskRun
 from werkzeug.exceptions import Forbidden, BadRequest
-from werkzeug import secure_filename
 
 from api_base import APIBase
 from pybossa.util import get_user_id_or_ip
 from pybossa.core import task_repo, sentinel
-from pybossa.uploader.s3_uploader import s3_upload_from_string, s3_upload
+from pybossa.uploader.s3_uploader import s3_upload_from_string
+from pybossa.uploader.s3_uploader import s3_upload_file_storage
 
 
 class TaskRunAPI(APIBase):
@@ -41,29 +41,25 @@ class TaskRunAPI(APIBase):
     __class__ = TaskRun
     reserved_keys = set(['id', 'created', 'finish_time'])
 
-    allowed_extensions = ['.txt', '.pdf', '.json']
-
     def _preprocess_post_data(self, data):
         task_id = data['task_id']
         project_id = data['project_id']
-        user_id = data['user_id']
+        user_id = current_user.id
         info = data['info']
-        path = "{0}/{1}/{2}/{3}".format('dev', project_id, task_id, user_id)
-        print "hic sunt leones"
+        path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
         for key in info:
             if key.endswith('__upload_url'):
                 filename = info[key]['filename']
-                self._validate_filename(filename)
-                filename = secure_filename(filename)
                 content = info[key]['content']
                 s3_url = s3_upload_from_string(content, filename,
-                                               upload_dir=path)
-                data[key] = s3_url
-
-    def _validate_filename(self, filename):
-        extension = os.path.splitext(filename)[1]
-        if extension not in self.allowed_extensions:
-            raise BadRequest("Invalid File Extension")
+                                               directory=path)
+                info[key] = s3_url
+        for key in request.files:
+            if not key.endswith('__upload_url'):
+                raise BadRequest("File upload field should end in __upload_url")
+            file_obj = request.files[key]
+            s3_url = s3_upload_file_storage(file_obj, directory=path)
+            info[key] = s3_url
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""

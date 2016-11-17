@@ -178,9 +178,9 @@ class APIBase(MethodView):
         """
         try:
             self.valid_args()
-            data = json.loads(request.data)
-            self._preprocess_post_data(data)
+            data = self._parse_request_data()
             self._forbidden_attributes(data)
+            self._preprocess_post_data(data)
             inst = self._create_instance_from_request(data)
             repo = repos[self.__class__.__name__]['repo']
             save_func = repos[self.__class__.__name__]['save']
@@ -192,6 +192,13 @@ class APIBase(MethodView):
                 e,
                 target=self.__class__.__name__.lower(),
                 action='POST')
+
+    def _parse_request_data(self):
+        if 'request_json' in request.form:
+            data = json.loads(request.form['request_json'])
+        else:
+            data = json.loads(request.data)
+        return data
 
     def _preprocess_post_data(self, data):
         """Method to be overriden by inheriting classes that will

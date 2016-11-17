@@ -32,6 +32,7 @@ import re
 from wtforms.validators import ValidationError
 from flask import request
 from werkzeug.utils import secure_filename
+from pybossa.core import uploader
 
 EMAIL_MAX_LENGTH = 254
 USER_NAME_MAX_LENGTH = 35
@@ -158,7 +159,6 @@ class _BulkTaskGDImportForm(Form):
     def get_import_data(self):
         return {'type': 'gdocs', 'googledocs_url': self.googledocs_url.data}
 
-
 class _BulkTaskLocalCSVImportForm(Form):
     form_name = TextField(label=None, widget=HiddenInput(), default='localcsv')
     _allowed_extensions = set(['csv'])                               
@@ -171,15 +171,18 @@ class _BulkTaskLocalCSVImportForm(Form):
             if 'file' not in request.files:
                 flash('No file part')
                 return {'type': 'localcsv', 'csv_filename': None}
-            file = request.files['file']
-            if file.filename == '':
+            csv_file = request.files['file']
+            if csv_file.filename == '':
                 flash('No file selected')
                 return {'type': 'localcsv', 'csv_filename': None}
-            if file and self._allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                return {'type': 'localcsv', 'csv_filename': file.filename}
+            if csv_file and self._allowed_file(csv_file.filename):
+                filename = secure_filename(csv_file.filename)
+                tmpfile = '{0}/{1}'.format(uploader.upload_folder, filename)
+                with open(tmpfile, 'w') as fp:  
+                    fp.write(csv_file.stream.read())
+                return {'type': 'localcsv', 'csv_filename': tmpfile}
         return {'type': 'localcsv', 'csv_filename': None}
-
+        
 
 class _BulkTaskEpiCollectPlusImportForm(Form):
     form_name = TextField(label=None, widget=HiddenInput(), default='epicollect')
@@ -222,7 +225,7 @@ class GenericBulkTaskImportForm(object):
               'epicollect': _BulkTaskEpiCollectPlusImportForm,
               'flickr': _BulkTaskFlickrImportForm,
               'dropbox': _BulkTaskDropboxImportForm,
-              'localcsv': _BulkTaskLocalCSVImportForm }
+              'localcsv': _BulkTaskLocalCSVImportForm}
 
     def __call__(self, form_name, *form_args, **form_kwargs):
         if form_name is None:
