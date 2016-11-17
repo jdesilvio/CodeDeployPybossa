@@ -31,6 +31,7 @@ from api_base import APIBase
 from pybossa.util import get_user_id_or_ip
 from pybossa.core import task_repo, sentinel
 from pybossa.uploader.s3_uploader import s3_upload_from_string
+from pybossa.gig_utils import json_traverse
 from pybossa.uploader.s3_uploader import s3_upload_file_storage
 
 
@@ -47,19 +48,8 @@ class TaskRunAPI(APIBase):
         user_id = current_user.id
         info = data['info']
         path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
-        for key in info:
-            if key.endswith('__upload_url'):
-                filename = info[key]['filename']
-                content = info[key]['content']
-                s3_url = s3_upload_from_string(content, filename,
-                                               directory=path)
-                info[key] = s3_url
-        for key in request.files:
-            if not key.endswith('__upload_url'):
-                raise BadRequest("File upload field should end in __upload_url")
-            file_obj = request.files[key]
-            s3_url = s3_upload_file_storage(file_obj, directory=path)
-            info[key] = s3_url
+        _upload_files_from_json(info, path)
+        _upload_files_from_request(info, request.files, path)
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
@@ -92,3 +82,26 @@ def _check_task_requested_by_user(taskrun, redis_conn):
     if user_id_ip['user_id'] is not None:
         redis_conn.delete(key)
     return task_requested
+
+
+def _upload_files_from_json(task_run_info, upload_path):
+    def func(obj, key, value):
+        if key.endswith('__upload_url'):
+            filename = value.get('filename')
+            content = value.get('content')
+            if filename is None or content is None:
+                return True
+            out_url = s3_upload_from_string(content, filename,
+                                            directory=upload_path)
+            obj[key] = out_url
+            return False
+    json_traverse(task_run_info, func)
+
+
+def _upload_files_from_request(task_run_info, files, upload_path):
+    for key in files:
+        if not key.endswith('__upload_url'):
+            raise BadRequest("File upload field should end in __upload_url")
+        file_obj = request.files[key]
+        s3_url = s3_upload_file_storage(file_obj, directory=upload_path)
+        task_run_info[key] = s3_url

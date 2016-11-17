@@ -4,8 +4,9 @@ from werkzeug.utils import secure_filename
 import magic
 from tempfile import NamedTemporaryFile
 import os
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, InternalServerError
 import re
+import io
 
 
 allowed_mime_types = ['application/pdf',
@@ -37,7 +38,7 @@ def tmp_file_from_string(string):
     """
     tmp_file = NamedTemporaryFile(delete=False)
     try:
-        with open(tmp_file.name, "w") as fp:
+        with io.open(tmp_file.name, "w", encoding="utf8") as fp:
             fp.write(string)
     except Exception as e:
         os.unlink(tmp_file.name)
@@ -70,28 +71,34 @@ def s3_upload_tmp_file(tmp_file, filename, headers, directory=""):
     """
     try:
         check_type(tmp_file.name)
-        with open(tmp_file.name) as fp:
+        with io.open(tmp_file.name, encoding="utf8") as fp:
             url = s3_upload_file(fp, filename, headers, directory)
     finally:
         os.unlink(tmp_file.name)
     return url
 
 
+def form_upload_directory(directory, filename):
+    validate_directory(directory)
+    app_dir = app.config.get("S3_UPLOAD_DIRECTORY")
+    parts = [app_dir, directory, filename]
+    return "/".join(part for part in parts if part)
+
+
 def s3_upload_file(fp, filename, headers, directory=""):
     """
     Upload a file-type object to s3
     """
-    if directory:
-        upload_dir = "/".join([app.config["S3_UPLOAD_DIRECTORY"], directory])
-    else:
-        upload_dir = app.config["S3_UPLOAD_DIRECTORY"]
-    validate_directory(upload_dir)
+    if "S3_BUCKET" not in app.config:
+        raise InternalServerError("S3 bucket not configured")
 
     filename = secure_filename(filename)
-    conn = boto.connect_s3(app.config["S3_KEY"], app.config["S3_SECRET"])
+    upload_key = form_upload_directory(directory, filename)
+    conn = boto.connect_s3(app.config.get("S3_KEY"),
+                           app.config.get("S3_SECRET"))
     bucket = conn.get_bucket(app.config["S3_BUCKET"])
 
-    key = bucket.new_key("/".join([upload_dir, filename]))
+    key = bucket.new_key(upload_key)
     key.set_contents_from_file(fp, headers=headers)
 
     return key.generate_url(0).split('?', 1)[0]
