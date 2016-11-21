@@ -65,8 +65,7 @@ class TaskRunAPI(APIBase):
 
         # validate and modify taskrun attributes
         self._add_user_info(taskrun)
-        self._add_created_timestamp(taskrun, task)
-        self._add_finish_timestamp(taskrun, task)
+        self._add_timestamps(taskrun, task)
 
     def _forbidden_attributes(self, data):
         for key in data.keys():
@@ -79,12 +78,19 @@ class TaskRunAPI(APIBase):
         else:
             taskrun.user_id = current_user.id
 
-    def _add_created_timestamp(self, taskrun, task):
-        taskrun.created = _validate_datetime(taskrun.info.pop('start_time'))
-
-    def _add_finish_timestamp(self, taskrun, task):
-        taskrun.finish_time = _validate_datetime(taskrun.info.pop('end_time'))
-
+    def _add_timestamps(self, taskrun, task):
+        created = _validate_datetime(taskrun.info.pop('start_time'))
+        finish_time = datetime.now().isoformat()
+        # sanity check
+        if created < finish_time:
+            taskrun.created = created
+            taskrun.finish_time = finish_time
+        else:
+            # return an arbitrary valid timestamp so that answer can be submitted
+            created = datetime.strptime('1900-01-01T00:00:00.000000',
+                                        '%Y-%m-%dT%H:%M:%S.%f')
+            taskrun.created = created.isoformat()
+            taskrun.finish_time = finish_time
 
 
 def _check_task_requested_by_user(taskrun, redis_conn):
@@ -109,7 +115,6 @@ def _upload_files_from_json(task_run_info, upload_path):
             return False
     json_traverse(task_run_info, func)
 
-
 def _upload_files_from_request(task_run_info, files, upload_path):
     for key in files:
         if not key.endswith('__upload_url'):
@@ -121,6 +126,8 @@ def _upload_files_from_request(task_run_info, files, upload_path):
 def _validate_datetime(timestamp):
     try:
         timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
-        return timestamp.isoformat()
-    except ValueError:
-        raise ValueError("Incorrect data format")
+    except:
+        # return an arbitrary valid timestamp so that answer can be submitted
+        timestamp = datetime.strptime('1900-01-01T00:00:00.000000',
+                                      '%Y-%m-%dT%H:%M:%S.%f')
+    return timestamp.isoformat()

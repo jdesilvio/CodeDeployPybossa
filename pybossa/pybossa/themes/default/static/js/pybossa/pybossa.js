@@ -81,9 +81,8 @@
         return task;
     }
 
-    function _addTimesToTaskRunInfo(taskrun) {
+    function _addStartTimeToTaskRunInfo(taskrun) {
         taskrun.info.start_time = startTime;
-        taskrun.info.end_time = new Date().toJSON();
         return taskrun;
     }
 
@@ -94,7 +93,7 @@
             'task_id': task.id,
             'info': task.answer
         };
-        taskrun = _addTimesToTaskRunInfo(taskrun);
+        taskrun = _addStartTimeToTaskRunInfo(taskrun);
         taskrun = JSON.stringify(taskrun);
         return _saveTaskRun(taskrun).then(function(data) {return data;});
     }
