@@ -50,6 +50,19 @@ class TaskRunAPI(APIBase):
         path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
         _upload_files_from_json(info, path)
         _upload_files_from_request(info, request.files, path)
+        for key in info:
+            if key.endswith('__upload_url'):
+                filename = info[key]['filename']
+                content = info[key]['content']
+                s3_url = s3_upload_from_string(content, filename,
+                                               directory=path)
+                info[key] = s3_url
+        for key in request.files:
+            if not key.endswith('__upload_url'):
+                raise BadRequest("File upload field should end in __upload_url")
+            file_obj = request.files[key]
+            s3_url = s3_upload_file_storage(file_obj, directory=path)
+            info[key] = s3_url
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
@@ -65,7 +78,7 @@ class TaskRunAPI(APIBase):
 
         # validate and modify taskrun attributes
         self._add_user_info(taskrun)
-        self._add_timestamps(taskrun, task)
+        self._add_timestamps(taskrun, task, sentinel.master)
 
     def _forbidden_attributes(self, data):
         for key in data.keys():
@@ -78,9 +91,18 @@ class TaskRunAPI(APIBase):
         else:
             taskrun.user_id = current_user.id
 
-    def _add_timestamps(self, taskrun, task):
-        created = _validate_datetime(taskrun.info.pop('start_time'))
+    def _add_timestamps(self, taskrun, task, redis_conn):
         finish_time = datetime.now().isoformat()
+        usr = taskrun.user_id or taskrun.user_ip
+        if task.id:
+            presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key' \
+                    .format(usr, task.id)
+            presented_time = redis_conn.get(presented_time_key)
+            created = _validate_datetime(presented_time)
+        else:
+            created = datetime.strptime('1900-01-01T00:00:00.000000',
+                                        '%Y-%m-%dT%H:%M:%S.%f')
+
         # sanity check
         if created < finish_time:
             taskrun.created = created
@@ -92,6 +114,10 @@ class TaskRunAPI(APIBase):
             taskrun.created = created.isoformat()
             taskrun.finish_time = finish_time
 
+        # delete cached time
+        if redis_conn.get(presented_time_key):
+            redis_conn.delete(presented_time_key)
+
 
 def _check_task_requested_by_user(taskrun, redis_conn):
     user_id_ip = get_user_id_or_ip()
@@ -101,6 +127,7 @@ def _check_task_requested_by_user(taskrun, redis_conn):
     if user_id_ip['user_id'] is not None:
         redis_conn.delete(key)
     return task_requested
+
 
 def _upload_files_from_json(task_run_info, upload_path):
     def func(obj, key, value):
@@ -115,6 +142,7 @@ def _upload_files_from_json(task_run_info, upload_path):
             return False
     json_traverse(task_run_info, func)
 
+
 def _upload_files_from_request(task_run_info, files, upload_path):
     for key in files:
         if not key.endswith('__upload_url'):
@@ -123,9 +151,10 @@ def _upload_files_from_request(task_run_info, files, upload_path):
         s3_url = s3_upload_file_storage(file_obj, directory=upload_path)
         task_run_info[key] = s3_url
 
+
 def _validate_datetime(timestamp):
     try:
-        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%fZ')
+        timestamp = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S.%f')
     except:
         # return an arbitrary valid timestamp so that answer can be submitted
         timestamp = datetime.strptime('1900-01-01T00:00:00.000000',
