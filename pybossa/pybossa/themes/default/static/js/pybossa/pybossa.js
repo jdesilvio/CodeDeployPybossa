@@ -16,8 +16,7 @@
 
 
 (function(pybossa, $, undefined) {
-    var url = '/',
-        startTime;
+    var url = '/';
 
     //AJAX calls
     function _userProgress(projectname) {
@@ -43,7 +42,7 @@
             dataType: 'json'
         });
     }
-    
+
     function _fetchTask(taskId) {
         return $.ajax({
             url: url + 'api/task/' + taskId,
@@ -58,6 +57,13 @@
             dataType: 'json',
             contentType: 'application/json',
             data: taskrun
+        });
+    }
+
+    function _cachePresentedTime(taskId) {
+        return $.ajax({
+            url: url + 'api/task/' + taskId + '/cachePresentedTime',
+            dataType: 'json'
         });
     }
 
@@ -81,11 +87,6 @@
         return task;
     }
 
-    function _addStartTimeToTaskRunInfo(taskrun) {
-        taskrun.info.start_time = startTime;
-        return taskrun;
-    }
-
     function _createTaskRun(answer, task) {
         task = _addAnswerToTask(task, answer);
         var taskrun = {
@@ -93,7 +94,6 @@
             'task_id': task.id,
             'info': task.answer
         };
-        taskrun = _addStartTimeToTaskRunInfo(taskrun);
         taskrun = JSON.stringify(taskrun);
         return _saveTaskRun(taskrun).then(function(data) {return data;});
     }
@@ -174,7 +174,7 @@
                     history.pushState({}, "Title", nextUrl);
                 }
                 _presentTask(task, taskSolved);
-                startTime = new Date().toJSON();
+                _cachePresentedTime(task.id);
                 $.when(nextLoaded, taskSolved).done(loop);
             }
             getNextTask(0, undefined).done(loop);
