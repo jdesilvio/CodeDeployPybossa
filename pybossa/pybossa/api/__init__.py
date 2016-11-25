@@ -54,6 +54,7 @@ from token import TokenAPI
 from pybossa.core import project_repo, task_repo
 from completed_task import CompletedTaskAPI
 from completed_task_run import CompletedTaskRunAPI
+from datetime import datetime
 
 blueprint = Blueprint('api', __name__)
 
@@ -145,6 +146,35 @@ def mark_task_as_requested_by_user(task, redis_conn):
     key = 'pybossa:task_requested:user:%s:task:%s' % (usr, task.id)
     timeout = 60 * 60
     redis_conn.setex(key, timeout, True)
+
+
+@jsonpify
+@blueprint.route('/app/<task_id>/cachePresentedTime')
+@blueprint.route('/task/<task_id>/cachePresentedTime')
+@crossdomain(origin='*', headers=cors_headers)
+@ratelimit(limit=ratelimits.get('LIMIT'), per=ratelimits.get('PER'))
+def cache_presented_time(task_id):
+    set_cache_presented_time(task_id, force=False)
+    return Response(json.dumps({}), mimetype="application/json")
+
+def set_cache_presented_time(task_id, force=False):
+    """Cache in Redis the initial datetime that a task was presented to a user.
+
+    If force=True, cache will be updated if there is no key or an existing key.
+    If force=False, cache will only be updated if no key exists.
+    """
+    user_id = None if current_user.is_anonymous() else current_user.id
+    user_ip = request.remote_addr if current_user.is_anonymous() else None
+    usr = user_id or user_ip
+    redis_conn = sentinel.master
+    timeout = 60 * 60
+    presented_time = datetime.utcnow().isoformat()
+    presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key'.format     (usr, task_id)
+    if redis_conn is not None:
+        if redis_conn.get(presented_time_key) is None:
+            redis_conn.setex(presented_time_key, timeout, presented_time)
+        elif force == True:
+            redis_conn.setex(presented_time_key, timeout, presented_time)
 
 
 @jsonpify
