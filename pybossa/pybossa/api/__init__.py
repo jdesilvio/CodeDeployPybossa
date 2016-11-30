@@ -172,16 +172,25 @@ def set_cache_presented_time(task_id, force=False):
     # Timeout set for 60 minutes to coincide with inactivity timeout
     timeout = 60 * 60
 
-    presented_time = datetime.utcnow().isoformat()
-    presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key'.format(usr, task_id)
-
     # Only set cache if usr is not None so that the cache cannot be set
     # by calling the API directly
     if redis_conn is not None and usr is not None:
-        # Set presented_time value if presented_time_key does not exist yet
+        presented_time = datetime.utcnow().isoformat()
+        presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key'.format(usr, task_id)
+
+        # Set presented_time value if presented_time_key does not exist yet.
+        # The presented time cannot be reset until it times out. 
+        # This will eliminate the ability for someone to manipulate the presented time
+        # to make it look like they spent less time on a task than they actually did.
+        # Besides user manipulation, if guards against browser reloads and accidental logouts.
+        # This is an appropriate solution since we do not have complete information
+        # regarding whether or not a user actually looked at a task before a browser reload,
+        # logout or timeout.
         if redis_conn.get(presented_time_key) is None:
             redis_conn.setex(presented_time_key, timeout, presented_time)
-        # Only overwrite an existing presented_time_key if force = True
+        # Only overwrite an existing presented_time_value if force = True.
+        # This should ONLY be used if there is no way for a user to take advantage
+        # of this feature to manuipulate the presented time.
         elif force == True:
             redis_conn.setex(presented_time_key, timeout, presented_time)
 
