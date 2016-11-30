@@ -54,19 +54,6 @@ class TaskRunAPI(APIBase):
         path = "{0}/{1}/{2}".format(project_id, task_id, user_id)
         _upload_files_from_json(info, path)
         _upload_files_from_request(info, request.files, path)
-        for key in info:
-            if key.endswith('__upload_url'):
-                filename = info[key]['filename']
-                content = info[key]['content']
-                s3_url = s3_upload_from_string(content, filename,
-                                               directory=path)
-                info[key] = s3_url
-        for key in request.files:
-            if not key.endswith('__upload_url'):
-                raise BadRequest("File upload field should end in __upload_url")
-            file_obj = request.files[key]
-            s3_url = s3_upload_file_storage(file_obj, directory=path)
-            info[key] = s3_url
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
