@@ -84,8 +84,9 @@ class TaskRunAPI(APIBase):
 
     def _add_timestamps(self, taskrun, task, redis_conn):
         finish_time = datetime.now().isoformat()
-        usr = taskrun.user_id or taskrun.user_ip
-        if redis_conn is not None:
+        # /cachePresentedTime API only caches when there is a user_id
+        usr = taskrun.user_id or None
+        if redis_conn is not None and usr is not None:
             if task.id:
                 presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key' \
                         .format(usr, task.id)
@@ -93,6 +94,8 @@ class TaskRunAPI(APIBase):
                 created = self._validate_datetime(presented_time)
             else:
                 created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+        else:
+            created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
 
         # sanity check
         if created < finish_time:
