@@ -33,11 +33,15 @@ from pybossa.core import task_repo, sentinel
 from pybossa.uploader.s3_uploader import s3_upload_from_string
 from pybossa.gig_utils import json_traverse
 from pybossa.uploader.s3_uploader import s3_upload_file_storage
+from datetime import datetime
 
 
 class TaskRunAPI(APIBase):
 
     """Class API for domain object TaskRun."""
+
+    DEFAULT_DATETIME = '1900-01-01T00:00:00.000000'
+    DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%f'
 
     __class__ = TaskRun
     reserved_keys = set(['id', 'created', 'finish_time'])
@@ -53,8 +57,9 @@ class TaskRunAPI(APIBase):
 
     def _update_object(self, taskrun):
         """Update task_run object with user id or ip."""
-        # validate the task and project for that taskrun are ok
         task = task_repo.get_task(taskrun.task_id)
+
+        # validate the task and project for that taskrun are ok
         if task is None:  # pragma: no cover
             raise Forbidden('Invalid task_id')
         if task.project_id != taskrun.project_id:
@@ -62,16 +67,57 @@ class TaskRunAPI(APIBase):
         if _check_task_requested_by_user(taskrun, sentinel.master) is False:
             raise Forbidden('You must request a task first!')
 
-        # Add the user info so it cannot post again the same taskrun
-        if current_user.is_anonymous():
-            taskrun.user_ip = request.remote_addr
-        else:
-            taskrun.user_id = current_user.id
+        # validate and modify taskrun attributes
+        self._add_user_info(taskrun)
+        self._add_timestamps(taskrun, task, sentinel.master)
 
     def _forbidden_attributes(self, data):
         for key in data.keys():
             if key in self.reserved_keys:
                 raise BadRequest("Reserved keys in payload")
+
+    def _add_user_info(self, taskrun):
+        if current_user.is_anonymous():
+            taskrun.user_ip = request.remote_addr
+        else:
+            taskrun.user_id = current_user.id
+
+    def _add_timestamps(self, taskrun, task, redis_conn):
+        finish_time = datetime.now().isoformat()
+        # /cachePresentedTime API only caches when there is a user_id
+        usr = taskrun.user_id or None
+        if redis_conn is not None and usr is not None:
+            if task.id:
+                presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key' \
+                        .format(usr, task.id)
+                presented_time = redis_conn.get(presented_time_key)
+                created = self._validate_datetime(presented_time)
+            else:
+                created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+        else:
+            created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+
+        # sanity check
+        if created < finish_time:
+            taskrun.created = created
+            taskrun.finish_time = finish_time
+        else:
+            # return an arbitrary valid timestamp so that answer can be submitted
+            created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+            taskrun.created = created.isoformat()
+            taskrun.finish_time = finish_time
+
+        # delete cached time
+        if redis_conn.get(presented_time_key):
+            redis_conn.delete(presented_time_key)
+
+    def _validate_datetime(self, timestamp):
+        try:
+            timestamp = datetime.strptime(timestamp, self.DATETIME_FORMAT)
+        except:
+            # return an arbitrary valid timestamp so that answer can be submitted
+            timestamp = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+        return timestamp.isoformat()
 
 
 def _check_task_requested_by_user(taskrun, redis_conn):
@@ -82,7 +128,6 @@ def _check_task_requested_by_user(taskrun, redis_conn):
     if user_id_ip['user_id'] is not None:
         redis_conn.delete(key)
     return task_requested
-
 
 def _upload_files_from_json(task_run_info, upload_path):
     def func(obj, key, value):

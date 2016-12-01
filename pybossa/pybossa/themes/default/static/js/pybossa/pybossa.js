@@ -42,6 +42,7 @@
             dataType: 'json'
         });
     }
+
     function _fetchTask(taskId) {
         return $.ajax({
             url: url + 'api/task/' + taskId,
@@ -56,6 +57,13 @@
             dataType: 'json',
             contentType: 'application/json',
             data: taskrun
+        });
+    }
+
+    function _cachePresentedTime(taskId) {
+        return $.ajax({
+            url: url + 'api/task/' + taskId + '/cachePresentedTime',
+            dataType: 'json'
         });
     }
 
@@ -166,6 +174,7 @@
                     history.pushState({}, "Title", nextUrl);
                 }
                 _presentTask(task, taskSolved);
+                _cachePresentedTime(task.id);
                 $.when(nextLoaded, taskSolved).done(loop);
             }
             getNextTask(0, undefined).done(loop);
