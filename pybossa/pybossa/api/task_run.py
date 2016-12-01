@@ -28,7 +28,7 @@ from pybossa.model.task_run import TaskRun
 from werkzeug.exceptions import Forbidden, BadRequest
 
 from api_base import APIBase
-from pybossa.util import get_user_id_or_ip
+from pybossa.util import get_user_id_or_ip, current_app
 from pybossa.core import task_repo, sentinel
 from pybossa.uploader.s3_uploader import s3_upload_from_string
 from pybossa.gig_utils import json_traverse
@@ -86,15 +86,13 @@ class TaskRunAPI(APIBase):
         finish_time = datetime.now().isoformat()
         # /cachePresentedTime API only caches when there is a user_id
         usr = taskrun.user_id or None
-        if redis_conn is not None and usr is not None:
-            if task.id:
-                presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key' \
-                        .format(usr, task.id)
-                presented_time = redis_conn.get(presented_time_key)
-                created = self._validate_datetime(presented_time)
-            else:
-                created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
+        if redis_conn is not None and usr is not None and task.id:
+            presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key' \
+                    .format(usr, task.id)
+            presented_time = redis_conn.get(presented_time_key)
+            created = self._validate_datetime(presented_time)
         else:
+            current_app.logger.info('TASKRUN_API_LOG: Cannot cache presented_time - redis_conn: {0}, user: {1}, task.id {2}'.format(redis_conn, usr, task.id))
             created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
 
         # sanity check
@@ -102,6 +100,7 @@ class TaskRunAPI(APIBase):
             taskrun.created = created
             taskrun.finish_time = finish_time
         else:
+            current_app.logger.info('TASKRUN_API_LOG: Creation Time {0} cannot be after Finished Time {1}'.format(created, finish_time))
             # return an arbitrary valid timestamp so that answer can be submitted
             created = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
             taskrun.created = created.isoformat()
@@ -115,6 +114,7 @@ class TaskRunAPI(APIBase):
         try:
             timestamp = datetime.strptime(timestamp, self.DATETIME_FORMAT)
         except:
+            current_app.logger.info('TASKRUN_API_LOG: Invalid datetime: {0}'.format(timestamp))
             # return an arbitrary valid timestamp so that answer can be submitted
             timestamp = datetime.strptime(self.DEFAULT_DATETIME, self.DATETIME_FORMAT)
         return timestamp.isoformat()
