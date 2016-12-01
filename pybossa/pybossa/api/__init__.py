@@ -35,7 +35,7 @@ import json
 from flask import Blueprint, request, abort, Response, make_response
 from flask.ext.login import current_user
 from werkzeug.exceptions import NotFound
-from pybossa.util import jsonpify, crossdomain, get_user_id_or_ip
+from pybossa.util import jsonpify, crossdomain, get_user_id_or_ip, current_app
 import pybossa.model as model
 from pybossa.core import csrf, ratelimits, sentinel
 from pybossa.ratelimit import ratelimit
@@ -177,6 +177,7 @@ def set_cache_presented_time(task_id, force=False):
     if redis_conn is not None and usr is not None:
         presented_time = datetime.utcnow().isoformat()
         presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key'.format(usr, task_id)
+        presented_time_value = redis_conn.get(presented_time_key) or None
 
         # Set presented_time value if presented_time_key does not exist yet.
         # The presented time cannot be reset until it times out. 
@@ -186,14 +187,18 @@ def set_cache_presented_time(task_id, force=False):
         # This is an appropriate solution since we do not have complete information
         # regarding whether or not a user actually looked at a task before a browser reload,
         # logout or timeout.
-        if redis_conn.get(presented_time_key) is None:
+        if presented_time_value is None:
             redis_conn.setex(presented_time_key, timeout, presented_time)
         # Only overwrite an existing presented_time_value if force = True.
         # This should ONLY be used if there is no way for a user to take advantage
         # of this feature to manuipulate the presented time.
         elif force == True:
             redis_conn.setex(presented_time_key, timeout, presented_time)
-
+        else:
+            current_app.logger.info('CACHE_PRESENTED_TIME_LOG: key: {0} is already set to {1} and "force" is {2}'
+                    .format(presented_time_key, presented_time_value, force))
+    else:
+        current_app.logger.info('CACHE_PRESENTED_TIME_LOG: Cannot cache presented time - redis_conn: {0}, user: {1}'.format(redis_conn, usr))
 
 @jsonpify
 @blueprint.route('/app/<short_name>/userprogress')
