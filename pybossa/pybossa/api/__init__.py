@@ -169,6 +169,9 @@ def set_cache_presented_time(task_id, force=False):
     usr = get_user_id_or_ip()['user_id'] or None
     redis_conn = sentinel.master
 
+    #TODO: remove after testing
+    current_app.logger.info('CACHE_PRESENTED_TIME_LOG: Attempting to cache for user: {0}'.format(usr))
+
     # Timeout set for 60 minutes to coincide with inactivity timeout
     timeout = 60 * 60
 
@@ -178,6 +181,10 @@ def set_cache_presented_time(task_id, force=False):
         presented_time = datetime.utcnow().isoformat()
         presented_time_key = 'pybossa:user:{0}:task_id:{1}:presented_time_key'.format(usr, task_id)
         presented_time_value = redis_conn.get(presented_time_key) or None
+
+        #TODO: remove after testing
+        current_app.logger.info('CACHE_PRESENTED_TIME_LOG: Attempting to cache presented_time {0}, presented_time_key {1}, presented_time_cache {2}'
+                .format(presented_time, presented_time_key, presented_time_value))
 
         # Set presented_time value if presented_time_key does not exist yet.
         # The presented time cannot be reset until it times out. 
@@ -189,6 +196,10 @@ def set_cache_presented_time(task_id, force=False):
         # logout or timeout.
         if presented_time_value is None:
             redis_conn.setex(presented_time_key, timeout, presented_time)
+
+            #TODO: remove after testing
+            current_app.logger.info('CACHE_PRESENTED_TIME_LOG: Cache set to key {0} value {1}'.format(presented_time_key, redis_conn.get(presented_time_key)))
+
         # Only overwrite an existing presented_time_value if force = True.
         # This should ONLY be used if there is no way for a user to take advantage
         # of this feature to manuipulate the presented time.
